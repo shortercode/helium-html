@@ -4,7 +4,7 @@
 		"declarationMap": true,
 		"sourceMap": true,
 		"outDir": "dist",
-		"lib": ["es2020"],
+		"lib": ["es2020", "DOM"],
 		"removeComments": true,
 		"target": "es2018",
 		"strict": true,
