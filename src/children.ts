@@ -1,19 +1,26 @@
 import type { Observable } from './Observable.type';
 import { map } from './operators';
 
-export function children<T, R extends ChildNode> (store: Observable<Iterable<T>>, key: (value: T) => unknown, transform: (value: T) => R) {
-	const cache = new Map<unknown, R>();
-	return store.pipe(
-		map((elements: Iterable<T>) => 
-			Array.from(elements).map(item => {
-				const id = key(item);
-				if (cache.has(id)) {
-					return cache.get(id);
-				}
-				const result = transform(item);
-				cache.set(id, result);
+export function children<T, R extends ChildNode> (source: Observable<Iterable<T>>, transform: (value: T) => R, identity: (value: T, index: number) => unknown = (a) => a) {
+	let old_cache = new Map<unknown, R>();
+	return source.pipe(
+		map((elements: Iterable<T>) => {
+      const new_cache = new Map<unknown, R>();
+
+			const nodes = Array.from(elements).map((item, index) => {
+				const id = identity(item, index);
+        const result = old_cache.get(id) ?? transform(item);
+        if (new_cache.has(id)) {
+          // HACK forces template literal stringify for `id`
+          throw new Error(`Duplicate entry with ID ${id as string} at index ${index}`);
+        }
+				new_cache.set(id, result);
 				return result;
-			})
-		)
+			});
+
+      old_cache = new_cache;
+
+      return nodes;
+    })
 	);
 }
