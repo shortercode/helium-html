@@ -25,11 +25,7 @@ export function parse_chunk (ctx: Parser, src: string, part_index: number) {
 	 * which means any attempt to close a node will fail.
 	 */
 	ctx.part_index = part_index;
-
 	const buffer = Array.from(src);
-	if (ctx.attribute_mode) {
-		parse_attributes(ctx, buffer);
-	}
 	parse_nodes(ctx, buffer);
 }
 
@@ -109,6 +105,9 @@ export function consume_whitespace (buffer: string[]): void {
 }
 
 export function parse_nodes (ctx: Parser, buffer: string[]) {
+  if (ctx.attribute_mode) {
+		parse_attributes(ctx, buffer);
+	}
 	while(buffer.length > 0) {
 		parse_node(ctx, buffer);
 	}
@@ -139,9 +138,10 @@ export function parse_tag (ctx: Parser, buffer: string[]): void {
 }
 
 export function parse_closing_tag (ctx: Parser, buffer: string[]): void {
-	const tag = read_tag_name(buffer);
 	const top = ctx.stack[0];
   invariant(top !== undefined, 'Stack is empty, no root node');
+  const tag = read_tag_name(buffer);
+
 	if (tag !== top.tag) {
 		console.warn(`Unmatched closing tag "${tag}" in current context "${top.tag}"`);
 		/** 
@@ -177,7 +177,7 @@ export function parse_closing_tag (ctx: Parser, buffer: string[]): void {
 		throw new SyntaxError('Unexpected end of string, expected \'>\'.');
 	}
 	if (next_ch !== '>') {
-		throw new SyntaxError(`Expected character ">" but received "${next_ch}"`);
+		throw new SyntaxError(`Expected character ">" but received "${next_ch}".`);
 	}
 }
 
@@ -217,13 +217,13 @@ export function read_tag_name (buffer: string[]): string {
 	const length = i < 0 ? buffer.length : i;
 
   if (length === 0) {
-    throw new Error('Unable to read tag name');
+    throw new Error('Unable to read tag name.');
   }
 
 	const tag_name = buffer.splice(0, length).join('');
 
 	if (!TAG_NAME_REGEX.test(tag_name)) {
-		throw new Error(`Invalid tag name "${tag_name}"`);
+		throw new Error(`Invalid tag name "${tag_name}".`);
 	}
 
 	return tag_name;

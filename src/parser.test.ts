@@ -1,5 +1,5 @@
 import { Dictionary, Index, invariant } from 'ts-runtime-typecheck';
-import { append_attribute, append_child, close_parser, create_parser, parse_opening_tag, parse_text_node, read_tag_name } from './parser';
+import { append_attribute, append_child, close_parser, create_parser, parse_closing_tag, parse_node, parse_opening_tag, parse_tag, parse_text_node, read_tag_name } from './parser';
 import type { Parser } from './Parser.type';
 import { FRAGMENT_TAG } from './Template.constants';
 
@@ -14,7 +14,9 @@ describe('create_parser', () => {
 });
 
 describe('parse_chunk', () => {
-
+  test.todo('parses nodes by default');
+  test.todo('resumes attribute parsing if attribute mode is set');
+  test.todo('sets part_index');
 });
 
 describe('parse_attributes', () => {
@@ -48,28 +50,169 @@ describe('consume_whitespace', () => {
 
 describe('parse_nodes', () => {
   test.todo('empty buffer');
+  test.todo('parse attributes first if attribute mode is set');
   test.todo('1 node');
   test.todo('multiple nodes');
   test.todo('variable node');
+  test.todo('variable node after nodes');
 });
 
 describe('parse_node', () => {
-  test.todo('tag');
-  test.todo('text');
+  test('tag', () => {
+    const ctx = create_parser();
+    const buffer = Array.from('<hello/>');
+    parse_node(ctx, buffer);
+    expect(ctx.stack).toStrictEqual([
+      {
+        tag: FRAGMENT_TAG,
+        children: [ { tag: 'hello' } ],
+      }
+    ]);
+    expect(buffer.length).toBe(0);
+  });
+  test('text', () => {
+    const ctx = create_parser();
+    const buffer = Array.from('hello');
+    parse_node(ctx, buffer);
+    expect(ctx.stack).toStrictEqual([
+      {
+        tag: FRAGMENT_TAG,
+        children: [ 'hello' ],
+      }
+    ]);
+    expect(buffer.length).toBe(0);
+  });
 });
 
 describe('parse_tag', () => {
-  test.todo('opening tag');
-  test.todo('closing tag');
+  test('opening tag', () => {
+    const ctx = create_parser();
+    const buffer = Array.from('hello>');
+    parse_tag(ctx, buffer);
+    expect(ctx.stack).toStrictEqual([
+      { tag: 'hello' },
+      { tag: FRAGMENT_TAG, children: [ { tag: 'hello' }] }
+    ]);
+    expect(buffer.length).toBe(0);
+  });
+  test('closing tag', () => {
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: [
+        { tag: 'hello' },
+        { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+      ]
+    };
+    
+    const buffer = Array.from('/hello>');
+    parse_tag(ctx, buffer);
+    expect(ctx.stack).toStrictEqual([
+      { tag: FRAGMENT_TAG, children: [ { tag: 'hello' }] }
+    ]);
+    expect(buffer.length).toBe(0);
+  });
 });
 
 describe('parse_closing_tag', () => {
-  test.todo('matching tag');
-  test.todo('unmatched tag');
-  test.todo('close parent');
-  test.todo('empty stack');
-  test.todo('unterminated tag');
-  test.todo('invalid character');
+  test('matching tag', () => {
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: [
+        { tag: 'hello' },
+        { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+      ]
+    };
+    
+    const buffer = Array.from('hello>');
+
+    parse_closing_tag(ctx, buffer);
+
+    expect(ctx.stack).toStrictEqual([
+      { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+    ]);
+    expect(buffer.length).toBe(0);
+  });
+  test('unmatched tag', () => {
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: [
+        { tag: 'hello' },
+        { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+      ]
+    };
+    
+    const buffer = Array.from('goodbye>');
+
+    parse_closing_tag(ctx, buffer);
+
+    expect(ctx.stack).toStrictEqual([
+      { tag: 'hello' },
+      { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+    ]);
+    expect(buffer.length).toBe(0);
+  });
+  test('close parent', () => {
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: [
+        { tag: 'goodbye' },
+        { tag: 'hello', children: [ { tag: 'goodbye' }] },
+        { tag: FRAGMENT_TAG, children: [ { tag: 'hello', children: [ { tag: 'goodbye' }] } ]}
+      ]
+    };
+    
+    const buffer = Array.from('hello>');
+
+    parse_closing_tag(ctx, buffer);
+
+    expect(ctx.stack).toStrictEqual([
+      { tag: FRAGMENT_TAG, children: [ { tag: 'hello', children: [ { tag: 'goodbye' }] } ]}
+    ]);
+    expect(buffer.length).toBe(0);
+  });
+  test('empty stack', () => {
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: []
+    };
+
+    const buffer = Array.from('hello>');
+
+    expect(() => parse_closing_tag(ctx, buffer)).toThrow('Stack is empty, no root node');
+  });
+  test('unterminated tag', () => {
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: [
+        { tag: 'hello' },
+        { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+      ]
+    };
+    
+    const buffer = Array.from('hello');
+
+    expect(() => parse_closing_tag(ctx, buffer)).toThrow('Unexpected end of string, expected \'>\'.');
+  });
+  test('invalid character', () => {
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: [
+        { tag: 'hello' },
+        { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+      ]
+    };
+    
+    const buffer = Array.from('hello<');
+
+    expect(() => parse_closing_tag(ctx, buffer)).toThrow('Expected character ">" but received "<".');
+  });
 });
 
 describe('parse_opening_tag', () => {
@@ -283,16 +426,20 @@ describe('read_tag_name', () => {
   expect(read_tag_name(buffer)).toBe('hello-world');
   expect(buffer.length).toBe(0); 
  });
+ test('reject invalid names', () => {
+  const buffer = Array.from('hello--world');
+  expect(() => read_tag_name(buffer)).toThrow('Invalid tag name "hello--world".');
+ });
  test('allows numbers', () => {
   const buffer = Array.from('h1');
   expect(read_tag_name(buffer)).toBe('h1');
   expect(buffer.length).toBe(0);
  });
  test('throws if no characters available', () => {
-  expect(() => read_tag_name([])).toThrow('Unable to read tag name');
+  expect(() => read_tag_name([])).toThrow('Unable to read tag name.');
  });
  test('throws if leading character is invalid ', () => {
-  expect(() => read_tag_name(['<'])).toThrow('Unable to read tag name');
+  expect(() => read_tag_name(['<'])).toThrow('Unable to read tag name.');
  });
 });
 
