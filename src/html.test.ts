@@ -25,7 +25,7 @@ describe('html', () => {
     expect(node).toBeInstanceOf(DocumentFragment);
     expect(node.children.length).toBe(1);
     expect(node.firstElementChild?.tagName).toBe('DIV');
-    expect(node.firstElementChild?.attributes.getNamedItem('title')).toBe('Hello World');
+    expect(node.firstElementChild?.attributes.getNamedItem('title')?.value).toBe('Hello World');
     expect(node.firstElementChild?.textContent).toBe('Hello World');
   });
 });

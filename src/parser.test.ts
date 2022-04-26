@@ -447,6 +447,7 @@ describe('parse_opening_tag', () => {
   describe('partial tag', () => {
     test('tagname', () => {
       const ctx = create_parser();
+			ctx.part_index = 0;
       const buffer = Array.from('hello');
       parse_opening_tag(ctx, buffer);
       expect(ctx.stack[0]).toStrictEqual({
@@ -457,6 +458,7 @@ describe('parse_opening_tag', () => {
     });
     test('with some attributes', () => {
       const ctx = create_parser();
+			ctx.part_index = 0;
       const buffer = Array.from('hello a b="value" c');
       parse_opening_tag(ctx, buffer);
       expect(ctx.stack[0]).toStrictEqual({
