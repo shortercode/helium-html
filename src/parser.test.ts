@@ -1,5 +1,5 @@
 import { Dictionary, Index, invariant } from 'ts-runtime-typecheck';
-import { append_attribute, append_child, close_parser, create_parser, parse_closing_tag, parse_node, parse_opening_tag, parse_tag, parse_text_node, read_tag_name } from './parser';
+import { append_attribute, append_child, close_parser, consume_whitespace, create_parser, get_attribute_value, parse_attributes, parse_closing_tag, parse_node, parse_nodes, parse_opening_tag, parse_tag, parse_text_node, read_tag_name } from './parser';
 import type { Parser } from './Parser.type';
 import { FRAGMENT_TAG } from './Template.constants';
 
@@ -20,8 +20,31 @@ describe('parse_chunk', () => {
 });
 
 describe('parse_attributes', () => {
-  test.todo('empty buffer');
-  test.todo('immediate self close');
+  test('empty buffer', () => {
+		const ctx = create_parser();
+		ctx.part_index = 0;
+		parse_attributes(ctx, []);
+		expect(ctx).toStrictEqual({
+			part_index: 0,
+			attribute_mode: true,
+			stack: [ { tag: FRAGMENT_TAG, children: [] }],
+		});
+	});
+  test('immediate self close', () => {
+		const ctx: Parser = {
+			part_index: -1,
+			attribute_mode: false,
+			stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+		};
+		const buffer = Array.from('/>');
+		parse_attributes(ctx, buffer);
+		expect(ctx).toStrictEqual({
+			part_index: -1,
+			attribute_mode: false,
+			stack: [ { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ] }],
+		});
+		expect(buffer.length).toBe(0);
+	});
   test.todo('no attributes');
   test.todo('multiple attributes');
   test.todo('whitespace then self close');
@@ -35,26 +58,165 @@ describe('parse_attributes', () => {
 });
 
 describe('get_attribute_value', () => {
-  test.todo('unterminated string');
-  test.todo('empty string');
-  test.todo('variable attribute');
-  test.todo('value');
+  test('unterminated string', () => {
+		const ctx = create_parser();
+		const buffer = Array.from('"hi');
+		expect(() => get_attribute_value(ctx, buffer)).toThrow('Unterminated attribute value; unable to find \'"\' character.');
+	});
+  test('empty string', () => {
+		const ctx = create_parser();
+		expect(() => get_attribute_value(ctx, [])).toThrow('Unexpected end of string, expected \'"\'.');
+	});
+	test('missing " at start', () => {
+		const ctx = create_parser();
+		const buffer = Array.from('hi');
+		expect(() => get_attribute_value(ctx, buffer)).toThrow('Expected \'"\' but found \'h\'.');
+	});
+  test('variable attribute', () => {
+		const ctx = create_parser();
+		ctx.part_index = 0;
+		expect(get_attribute_value(ctx, [])).toBe(0);
+	});
+  test('value', () => {
+		const ctx = create_parser();
+		const buffer = Array.from('"hi"');
+		expect(get_attribute_value(ctx, buffer)).toBe('hi');
+	});
 });
 
 describe('consume_whitespace', () => {
-  test.todo('empty buffer');
-  test.todo('no whitespace');
-  test.todo('match first non-whitespace character');
-  test.todo('all whitespace');
+  test('empty buffer', () => {
+		// just want to make sure this doesn't throw
+		consume_whitespace([]);
+	});
+  test('no whitespace', () => {
+		const buffer = Array.from('hello');
+		consume_whitespace(buffer);
+		expect(buffer.length).toBe(5);
+	});
+  test('match first non-whitespace character', () => {
+		const buffer = Array.from('  	hello');
+		consume_whitespace(buffer);
+		expect(buffer.length).toBe(5);
+	});
+  test('all whitespace', () => {
+		const buffer = Array.from('  	 		 	 	   	 	 \n		 ');
+		consume_whitespace(buffer);
+		expect(buffer.length).toBe(0);
+	});
 });
 
 describe('parse_nodes', () => {
-  test.todo('empty buffer');
-  test.todo('parse attributes first if attribute mode is set');
-  test.todo('1 node');
-  test.todo('multiple nodes');
-  test.todo('variable node');
-  test.todo('variable node after nodes');
+  test('empty buffer', () => {
+		const ctx = create_parser();
+		parse_nodes(ctx, []);
+		expect(ctx).toStrictEqual({
+			part_index: -1,
+			attribute_mode: false,
+			stack: [ { tag: FRAGMENT_TAG, children: [] }]
+		});
+	});
+  test('parse attributes first if attribute mode is set', () => {
+		const target_node = { tag: 'hello' };
+		const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: true,
+      stack: [
+        target_node,
+        { tag: FRAGMENT_TAG, children: [ target_node ]}
+      ]
+    };
+
+		const buffer = Array.from('a="1" b="2">');
+		parse_nodes(ctx, buffer);
+		expect(ctx).toStrictEqual({
+			part_index: -1,
+			attribute_mode: false,
+			stack: [
+				{ tag: 'hello', attributes: { a: '1', b: '2' } },
+				{
+					tag: FRAGMENT_TAG,
+					children: [
+						{ tag: 'hello', attributes: { a: '1', b: '2' } }
+					]
+				}
+			]
+		});
+	});
+  test('1 node', () => {
+		const ctx = create_parser();
+		const buffer = Array.from('<a/>');
+		parse_nodes(ctx, buffer);
+		expect(ctx).toStrictEqual({
+			part_index: -1,
+			attribute_mode: false,
+			stack: [
+				{
+					tag: FRAGMENT_TAG,
+					children: [
+						{ tag: 'a' }
+					]
+				}
+			]
+		});
+	});
+  test('multiple nodes', () => {
+		const ctx = create_parser();
+		const buffer = Array.from('<a/>hello<b/>');
+		parse_nodes(ctx, buffer);
+		expect(ctx).toStrictEqual({
+			part_index: -1,
+			attribute_mode: false,
+			stack: [
+				{
+					tag: FRAGMENT_TAG,
+					children: [
+						{ tag: 'a' },
+						'hello',
+						{ tag: 'b' }
+					]
+				}
+			]
+		});
+	});
+  test('variable node', () => {
+		const ctx = create_parser();
+		ctx.part_index = 0;
+		const buffer = Array.from('');
+		parse_nodes(ctx, buffer);
+		expect(ctx).toStrictEqual({
+			part_index: 0,
+			attribute_mode: false,
+			stack: [
+				{
+					tag: FRAGMENT_TAG,
+					children: [
+						0
+					]
+				}
+			]
+		});
+	});
+  test('variable node after nodes', () => {
+		const ctx = create_parser();
+		ctx.part_index = 0;
+		const buffer = Array.from('<a/><b/>');
+		parse_nodes(ctx, buffer);
+		expect(ctx).toStrictEqual({
+			part_index: 0,
+			attribute_mode: false,
+			stack: [
+				{
+					tag: FRAGMENT_TAG,
+					children: [
+						{ tag: 'a' },
+						{ tag: 'b' },
+						0
+					]
+				}
+			]
+		});
+	});
 });
 
 describe('parse_node', () => {

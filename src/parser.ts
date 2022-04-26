@@ -84,7 +84,7 @@ export function get_attribute_value (ctx: Parser, buffer: string[]): string | nu
 		throw new SyntaxError('Unexpected end of string, expected \'"\'.');
 	}
 	if (next_ch !== '"') {
-		throw new SyntaxError(`Expected '"' but found ${next_ch}.`);
+		throw new SyntaxError(`Expected '"' but found '${next_ch}'.`);
 	}
 
 	// find the first invalid 
