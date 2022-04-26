@@ -1,18 +1,18 @@
 describe('SimpleObservable', () => {
-	test.todo('test SimpleObservable');
+  test.todo('test SimpleObservable');
 
 });
 
 describe('Emitter', () => {
-	test.todo('test Emitter');
+  test.todo('test Emitter');
 
 });
 
 describe('Store', () => {
-	test.todo('test Store');
+  test.todo('test Store');
 
 });
 
 describe('is_observable', () => {
-	test.todo('test is_observable');
+  test.todo('test is_observable');
 });

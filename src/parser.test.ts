@@ -21,30 +21,30 @@ describe('parse_chunk', () => {
 
 describe('parse_attributes', () => {
   test('empty buffer', () => {
-		const ctx = create_parser();
-		ctx.part_index = 0;
-		parse_attributes(ctx, []);
-		expect(ctx).toStrictEqual({
-			part_index: 0,
-			attribute_mode: true,
-			stack: [ { tag: FRAGMENT_TAG, children: [] }],
-		});
-	});
+    const ctx = create_parser();
+    ctx.part_index = 0;
+    parse_attributes(ctx, []);
+    expect(ctx).toStrictEqual({
+      part_index: 0,
+      attribute_mode: true,
+      stack: [ { tag: FRAGMENT_TAG, children: [] }],
+    });
+  });
   test('immediate self close', () => {
-		const ctx: Parser = {
-			part_index: -1,
-			attribute_mode: false,
-			stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
-		};
-		const buffer = Array.from('/>');
-		parse_attributes(ctx, buffer);
-		expect(ctx).toStrictEqual({
-			part_index: -1,
-			attribute_mode: false,
-			stack: [ { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ] }],
-		});
-		expect(buffer.length).toBe(0);
-	});
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+    };
+    const buffer = Array.from('/>');
+    parse_attributes(ctx, buffer);
+    expect(ctx).toStrictEqual({
+      part_index: -1,
+      attribute_mode: false,
+      stack: [ { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ] }],
+    });
+    expect(buffer.length).toBe(0);
+  });
   test.todo('no attributes');
   test.todo('multiple attributes');
   test.todo('whitespace then self close');
@@ -59,66 +59,66 @@ describe('parse_attributes', () => {
 
 describe('get_attribute_value', () => {
   test('unterminated string', () => {
-		const ctx = create_parser();
-		const buffer = Array.from('"hi');
-		expect(() => get_attribute_value(ctx, buffer)).toThrow('Unterminated attribute value; unable to find \'"\' character.');
-	});
+    const ctx = create_parser();
+    const buffer = Array.from('"hi');
+    expect(() => get_attribute_value(ctx, buffer)).toThrow('Unterminated attribute value; unable to find \'"\' character.');
+  });
   test('empty string', () => {
-		const ctx = create_parser();
-		expect(() => get_attribute_value(ctx, [])).toThrow('Unexpected end of string, expected \'"\'.');
-	});
-	test('missing " at start', () => {
-		const ctx = create_parser();
-		const buffer = Array.from('hi');
-		expect(() => get_attribute_value(ctx, buffer)).toThrow('Expected \'"\' but found \'h\'.');
-	});
+    const ctx = create_parser();
+    expect(() => get_attribute_value(ctx, [])).toThrow('Unexpected end of string, expected \'"\'.');
+  });
+  test('missing " at start', () => {
+    const ctx = create_parser();
+    const buffer = Array.from('hi');
+    expect(() => get_attribute_value(ctx, buffer)).toThrow('Expected \'"\' but found \'h\'.');
+  });
   test('variable attribute', () => {
-		const ctx = create_parser();
-		ctx.part_index = 0;
-		expect(get_attribute_value(ctx, [])).toBe(0);
-	});
+    const ctx = create_parser();
+    ctx.part_index = 0;
+    expect(get_attribute_value(ctx, [])).toBe(0);
+  });
   test('value', () => {
-		const ctx = create_parser();
-		const buffer = Array.from('"hi"');
-		expect(get_attribute_value(ctx, buffer)).toBe('hi');
-	});
+    const ctx = create_parser();
+    const buffer = Array.from('"hi"');
+    expect(get_attribute_value(ctx, buffer)).toBe('hi');
+  });
 });
 
 describe('consume_whitespace', () => {
   test('empty buffer', () => {
-		// just want to make sure this doesn't throw
-		consume_whitespace([]);
-	});
+    // just want to make sure this doesn't throw
+    consume_whitespace([]);
+  });
   test('no whitespace', () => {
-		const buffer = Array.from('hello');
-		consume_whitespace(buffer);
-		expect(buffer.length).toBe(5);
-	});
+    const buffer = Array.from('hello');
+    consume_whitespace(buffer);
+    expect(buffer.length).toBe(5);
+  });
   test('match first non-whitespace character', () => {
-		const buffer = Array.from('  	hello');
-		consume_whitespace(buffer);
-		expect(buffer.length).toBe(5);
-	});
+    const buffer = Array.from('  	hello');
+    consume_whitespace(buffer);
+    expect(buffer.length).toBe(5);
+  });
   test('all whitespace', () => {
-		const buffer = Array.from('  	 		 	 	   	 	 \n		 ');
-		consume_whitespace(buffer);
-		expect(buffer.length).toBe(0);
-	});
+    const buffer = Array.from('  	 		 	 	   	 	 \n		 ');
+    consume_whitespace(buffer);
+    expect(buffer.length).toBe(0);
+  });
 });
 
 describe('parse_nodes', () => {
   test('empty buffer', () => {
-		const ctx = create_parser();
-		parse_nodes(ctx, []);
-		expect(ctx).toStrictEqual({
-			part_index: -1,
-			attribute_mode: false,
-			stack: [ { tag: FRAGMENT_TAG, children: [] }]
-		});
-	});
+    const ctx = create_parser();
+    parse_nodes(ctx, []);
+    expect(ctx).toStrictEqual({
+      part_index: -1,
+      attribute_mode: false,
+      stack: [ { tag: FRAGMENT_TAG, children: [] }]
+    });
+  });
   test('parse attributes first if attribute mode is set', () => {
-		const target_node = { tag: 'hello' };
-		const ctx: Parser = {
+    const target_node = { tag: 'hello' };
+    const ctx: Parser = {
       part_index: -1,
       attribute_mode: true,
       stack: [
@@ -127,96 +127,96 @@ describe('parse_nodes', () => {
       ]
     };
 
-		const buffer = Array.from('a="1" b="2">');
-		parse_nodes(ctx, buffer);
-		expect(ctx).toStrictEqual({
-			part_index: -1,
-			attribute_mode: false,
-			stack: [
-				{ tag: 'hello', attributes: { a: '1', b: '2' } },
-				{
-					tag: FRAGMENT_TAG,
-					children: [
-						{ tag: 'hello', attributes: { a: '1', b: '2' } }
-					]
-				}
-			]
-		});
-	});
+    const buffer = Array.from('a="1" b="2">');
+    parse_nodes(ctx, buffer);
+    expect(ctx).toStrictEqual({
+      part_index: -1,
+      attribute_mode: false,
+      stack: [
+        { tag: 'hello', attributes: { a: '1', b: '2' } },
+        {
+          tag: FRAGMENT_TAG,
+          children: [
+            { tag: 'hello', attributes: { a: '1', b: '2' } }
+          ]
+        }
+      ]
+    });
+  });
   test('1 node', () => {
-		const ctx = create_parser();
-		const buffer = Array.from('<a/>');
-		parse_nodes(ctx, buffer);
-		expect(ctx).toStrictEqual({
-			part_index: -1,
-			attribute_mode: false,
-			stack: [
-				{
-					tag: FRAGMENT_TAG,
-					children: [
-						{ tag: 'a' }
-					]
-				}
-			]
-		});
-	});
+    const ctx = create_parser();
+    const buffer = Array.from('<a/>');
+    parse_nodes(ctx, buffer);
+    expect(ctx).toStrictEqual({
+      part_index: -1,
+      attribute_mode: false,
+      stack: [
+        {
+          tag: FRAGMENT_TAG,
+          children: [
+            { tag: 'a' }
+          ]
+        }
+      ]
+    });
+  });
   test('multiple nodes', () => {
-		const ctx = create_parser();
-		const buffer = Array.from('<a/>hello<b/>');
-		parse_nodes(ctx, buffer);
-		expect(ctx).toStrictEqual({
-			part_index: -1,
-			attribute_mode: false,
-			stack: [
-				{
-					tag: FRAGMENT_TAG,
-					children: [
-						{ tag: 'a' },
-						'hello',
-						{ tag: 'b' }
-					]
-				}
-			]
-		});
-	});
+    const ctx = create_parser();
+    const buffer = Array.from('<a/>hello<b/>');
+    parse_nodes(ctx, buffer);
+    expect(ctx).toStrictEqual({
+      part_index: -1,
+      attribute_mode: false,
+      stack: [
+        {
+          tag: FRAGMENT_TAG,
+          children: [
+            { tag: 'a' },
+            'hello',
+            { tag: 'b' }
+          ]
+        }
+      ]
+    });
+  });
   test('variable node', () => {
-		const ctx = create_parser();
-		ctx.part_index = 0;
-		const buffer = Array.from('');
-		parse_nodes(ctx, buffer);
-		expect(ctx).toStrictEqual({
-			part_index: 0,
-			attribute_mode: false,
-			stack: [
-				{
-					tag: FRAGMENT_TAG,
-					children: [
-						0
-					]
-				}
-			]
-		});
-	});
+    const ctx = create_parser();
+    ctx.part_index = 0;
+    const buffer = Array.from('');
+    parse_nodes(ctx, buffer);
+    expect(ctx).toStrictEqual({
+      part_index: 0,
+      attribute_mode: false,
+      stack: [
+        {
+          tag: FRAGMENT_TAG,
+          children: [
+            0
+          ]
+        }
+      ]
+    });
+  });
   test('variable node after nodes', () => {
-		const ctx = create_parser();
-		ctx.part_index = 0;
-		const buffer = Array.from('<a/><b/>');
-		parse_nodes(ctx, buffer);
-		expect(ctx).toStrictEqual({
-			part_index: 0,
-			attribute_mode: false,
-			stack: [
-				{
-					tag: FRAGMENT_TAG,
-					children: [
-						{ tag: 'a' },
-						{ tag: 'b' },
-						0
-					]
-				}
-			]
-		});
-	});
+    const ctx = create_parser();
+    ctx.part_index = 0;
+    const buffer = Array.from('<a/><b/>');
+    parse_nodes(ctx, buffer);
+    expect(ctx).toStrictEqual({
+      part_index: 0,
+      attribute_mode: false,
+      stack: [
+        {
+          tag: FRAGMENT_TAG,
+          children: [
+            { tag: 'a' },
+            { tag: 'b' },
+            0
+          ]
+        }
+      ]
+    });
+  });
 });
 
 describe('parse_node', () => {
@@ -447,7 +447,7 @@ describe('parse_opening_tag', () => {
   describe('partial tag', () => {
     test('tagname', () => {
       const ctx = create_parser();
-			ctx.part_index = 0;
+      ctx.part_index = 0;
       const buffer = Array.from('hello');
       parse_opening_tag(ctx, buffer);
       expect(ctx.stack[0]).toStrictEqual({
@@ -458,7 +458,7 @@ describe('parse_opening_tag', () => {
     });
     test('with some attributes', () => {
       const ctx = create_parser();
-			ctx.part_index = 0;
+      ctx.part_index = 0;
       const buffer = Array.from('hello a b="value" c');
       parse_opening_tag(ctx, buffer);
       expect(ctx.stack[0]).toStrictEqual({
@@ -580,31 +580,31 @@ describe('append_attribute', () => {
 });
 
 describe('read_tag_name', () => {
- test('does not read past spaces', () => {
-  const buffer = Array.from('hello world');
-  expect(read_tag_name(buffer)).toBe('hello');
-  expect(buffer.length).toBe(6);
- });
- test('includes dashes', () => {
-  const buffer = Array.from('hello-world');
-  expect(read_tag_name(buffer)).toBe('hello-world');
-  expect(buffer.length).toBe(0); 
- });
- test('reject invalid names', () => {
-  const buffer = Array.from('hello--world');
-  expect(() => read_tag_name(buffer)).toThrow('Invalid tag name "hello--world".');
- });
- test('allows numbers', () => {
-  const buffer = Array.from('h1');
-  expect(read_tag_name(buffer)).toBe('h1');
-  expect(buffer.length).toBe(0);
- });
- test('throws if no characters available', () => {
-  expect(() => read_tag_name([])).toThrow('Unable to read tag name.');
- });
- test('throws if leading character is invalid ', () => {
-  expect(() => read_tag_name(['<'])).toThrow('Unable to read tag name.');
- });
+  test('does not read past spaces', () => {
+    const buffer = Array.from('hello world');
+    expect(read_tag_name(buffer)).toBe('hello');
+    expect(buffer.length).toBe(6);
+  });
+  test('includes dashes', () => {
+    const buffer = Array.from('hello-world');
+    expect(read_tag_name(buffer)).toBe('hello-world');
+    expect(buffer.length).toBe(0); 
+  });
+  test('reject invalid names', () => {
+    const buffer = Array.from('hello--world');
+    expect(() => read_tag_name(buffer)).toThrow('Invalid tag name "hello--world".');
+  });
+  test('allows numbers', () => {
+    const buffer = Array.from('h1');
+    expect(read_tag_name(buffer)).toBe('h1');
+    expect(buffer.length).toBe(0);
+  });
+  test('throws if no characters available', () => {
+    expect(() => read_tag_name([])).toThrow('Unable to read tag name.');
+  });
+  test('throws if leading character is invalid ', () => {
+    expect(() => read_tag_name(['<'])).toThrow('Unable to read tag name.');
+  });
 });
 
 describe('parse_text_node', () => {

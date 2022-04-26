@@ -85,6 +85,7 @@ module.exports = {
       'error',
       { 'varsIgnorePattern': '^_', 'argsIgnorePattern': '^_' },
     ],
+		'@typescript-eslint/indent': ["error", 2],
     'curly': 'error',
   }
 };

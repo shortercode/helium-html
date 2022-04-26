@@ -14,25 +14,25 @@ export function html (literal: TemplateStringsArray, ...parts: unknown[]): Docum
 }
 
 export function helium (literal: TemplateStringsArray, parts: unknown[], namespace: 'http://www.w3.org/2000/svg' | 'http://www.w3.org/1999/xhtml'): DocumentFragment | Element {
-	let template = template_cache.get(literal);
+  let template = template_cache.get(literal);
 
   // first part can memoised based on the literal
   if (!template) {
-		const ctx = create_parser();
-		const l = literal.raw.length;
-		for (const [i, chunk] of literal.raw.entries()) {
-			// NOTE no associated part with the last chunk, so pass an index of -1
-			parse_chunk(ctx, chunk, i < l ? i : - 1);
-		}
-		template = close_parser(ctx);
+    const ctx = create_parser();
+    const l = literal.raw.length;
+    for (const [i, chunk] of literal.raw.entries()) {
+      // NOTE no associated part with the last chunk, so pass an index of -1
+      parse_chunk(ctx, chunk, i < l ? i : - 1);
+    }
+    template = close_parser(ctx);
   } 
 
   // this bit needs to be done fresh each time
   return render_template(template, parts, namespace);
 
-	// TODO the above always returns a fragment, because the root template is
-	// always a fragment. In the case that the fragment only contains 1 element
-	// it makes more sense to return that instead of the fragment
-	// This could be done by either trimming the template or inspecting the
-	// rendered output
+  // TODO the above always returns a fragment, because the root template is
+  // always a fragment. In the case that the fragment only contains 1 element
+  // it makes more sense to return that instead of the fragment
+  // This could be done by either trimming the template or inspecting the
+  // rendered output
 }

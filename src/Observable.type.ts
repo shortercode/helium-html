@@ -1,10 +1,10 @@
 export interface Observable<T> {
-	watch(next: Listener<T>): Disposable;
-	pipe<R> (operator: Operator<T, R>): Observable<R>;
+  watch(next: Listener<T>): Disposable;
+  pipe<R> (operator: Operator<T, R>): Observable<R>;
 }
 
 export interface Disposable {
-	dispose(): void;
+  dispose(): void;
 }
 
 export type Listener<T> = (value: T) => void;

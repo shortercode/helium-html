@@ -17,7 +17,7 @@ import type { Dictionary } from 'ts-runtime-typecheck';
  * amount.
  */
 export interface Template {
-	tag: string;
+  tag: string;
   attributes?: Dictionary<string | number>;
-	children?: Array<Template | string | number>;
+  children?: Array<Template | string | number>;
 }

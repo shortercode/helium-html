@@ -5,14 +5,14 @@ import type { Template } from './Template.type';
 
 export function create_parser (): Parser {
   return {
-		part_index: -1,
-		stack: [{ tag: FRAGMENT_TAG, children: [] }],
-		attribute_mode: false,
-	};
+    part_index: -1,
+    stack: [{ tag: FRAGMENT_TAG, children: [] }],
+    attribute_mode: false,
+  };
 }
 
 export function parse_chunk (ctx: Parser, src: string, part_index: number) {
-	/**
+  /**
 	 * The parser can be in 3 states here
 	 * 1. Initial
 	 * 2. After attribute
@@ -24,127 +24,127 @@ export function parse_chunk (ctx: Parser, src: string, part_index: number) {
 	 * The major difference between 1 & 3 is that there is no root node in state 1
 	 * which means any attempt to close a node will fail.
 	 */
-	ctx.part_index = part_index;
-	const buffer = Array.from(src);
-	parse_nodes(ctx, buffer);
+  ctx.part_index = part_index;
+  const buffer = Array.from(src);
+  parse_nodes(ctx, buffer);
 }
 
 export function parse_attributes (ctx: Parser, buffer: string[]): void {
-	while(buffer.length > 0) {
-		consume_whitespace(buffer);
-		if (buffer[0] === '/' || buffer[0] === '>') {
-			break;
-		}
-		// NOTE can also be used for attributes
-		const name = read_tag_name(buffer);
-		if (ctx.part_index === -1 && buffer.length === 0) {
-			throw new SyntaxError('Unexpected end of string, expected "=", "/>" or ">".');
-		}
-		if (buffer[0] === '=') {
-			// consume "="
-			buffer.shift();
-			const value = get_attribute_value(ctx, buffer);
-			append_attribute(ctx, name, value);
-		} else {
-			append_attribute(ctx, name, '');
-		}
-	}
+  while(buffer.length > 0) {
+    consume_whitespace(buffer);
+    if (buffer[0] === '/' || buffer[0] === '>') {
+      break;
+    }
+    // NOTE can also be used for attributes
+    const name = read_tag_name(buffer);
+    if (ctx.part_index === -1 && buffer.length === 0) {
+      throw new SyntaxError('Unexpected end of string, expected "=", "/>" or ">".');
+    }
+    if (buffer[0] === '=') {
+      // consume "="
+      buffer.shift();
+      const value = get_attribute_value(ctx, buffer);
+      append_attribute(ctx, name, value);
+    } else {
+      append_attribute(ctx, name, '');
+    }
+  }
 
-	if (ctx.part_index >= 0 && buffer.length === 0) {
-		ctx.attribute_mode = true;
-		return;
-	}
+  if (ctx.part_index >= 0 && buffer.length === 0) {
+    ctx.attribute_mode = true;
+    return;
+  }
 
-	ctx.attribute_mode = false;
+  ctx.attribute_mode = false;
 
-	if (buffer[0] === '/') {
-		// consume '/'
-		buffer.shift();
-		// pop the current element from the stack
-		ctx.stack.shift();
-	}
+  if (buffer[0] === '/') {
+    // consume '/'
+    buffer.shift();
+    // pop the current element from the stack
+    ctx.stack.shift();
+  }
 
-	// consume '>'
-	const next_ch = buffer.shift();
-	if (next_ch === undefined) {
-		throw new SyntaxError('Unexpected end of string, expected \'/>\'.');
-	}
-	if (next_ch !== '>') {
-		throw new SyntaxError(`Expected '>' but found ${next_ch}`);
-	}
+  // consume '>'
+  const next_ch = buffer.shift();
+  if (next_ch === undefined) {
+    throw new SyntaxError('Unexpected end of string, expected \'/>\'.');
+  }
+  if (next_ch !== '>') {
+    throw new SyntaxError(`Expected '>' but found ${next_ch}`);
+  }
 }
 
 export function get_attribute_value (ctx: Parser, buffer: string[]): string | number {
-	// consume " symbol
-	const next_ch = buffer.shift();
-	if (next_ch === undefined) {
-		if (ctx.part_index > -1) {
-			return ctx.part_index;
-		}
-		throw new SyntaxError('Unexpected end of string, expected \'"\'.');
-	}
-	if (next_ch !== '"') {
-		throw new SyntaxError(`Expected '"' but found '${next_ch}'.`);
-	}
+  // consume " symbol
+  const next_ch = buffer.shift();
+  if (next_ch === undefined) {
+    if (ctx.part_index > -1) {
+      return ctx.part_index;
+    }
+    throw new SyntaxError('Unexpected end of string, expected \'"\'.');
+  }
+  if (next_ch !== '"') {
+    throw new SyntaxError(`Expected '"' but found '${next_ch}'.`);
+  }
 
-	// find the first invalid 
-	const i = buffer.findIndex(ch => /["]/i.test(ch));
-	if (i < 0) {
-		throw new SyntaxError('Unterminated attribute value; unable to find \'"\' character.');
-	}
-	const value = buffer.splice(0, i).join('');
+  // find the first invalid 
+  const i = buffer.findIndex(ch => /["]/i.test(ch));
+  if (i < 0) {
+    throw new SyntaxError('Unterminated attribute value; unable to find \'"\' character.');
+  }
+  const value = buffer.splice(0, i).join('');
   // NOTE consume " character
   buffer.shift();
   return value;
 }
 
 export function consume_whitespace (buffer: string[]): void {
-	const i = buffer.findIndex(ch => /\S/m.test(ch));
-	const length = i < 0 ? buffer.length : i;
-	buffer.splice(0, length);
+  const i = buffer.findIndex(ch => /\S/m.test(ch));
+  const length = i < 0 ? buffer.length : i;
+  buffer.splice(0, length);
 }
 
 export function parse_nodes (ctx: Parser, buffer: string[]) {
   if (ctx.attribute_mode) {
-		parse_attributes(ctx, buffer);
-	}
-	while(buffer.length > 0) {
-		parse_node(ctx, buffer);
-	}
-	if (ctx.attribute_mode === false && ctx.part_index > -1) {
-		append_child(ctx, ctx.part_index);
-	}
+    parse_attributes(ctx, buffer);
+  }
+  while(buffer.length > 0) {
+    parse_node(ctx, buffer);
+  }
+  if (ctx.attribute_mode === false && ctx.part_index > -1) {
+    append_child(ctx, ctx.part_index);
+  }
 }
 
 const TAG_NAME_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/i; 
 
 export function parse_node (ctx: Parser, buffer: string[]): void {
-	if (buffer[0] === '<') {
+  if (buffer[0] === '<') {
     // consume angle bracket
-		buffer.shift();
-		parse_tag(ctx, buffer);
-	} else {
-		parse_text_node(ctx, buffer);
-	}
+    buffer.shift();
+    parse_tag(ctx, buffer);
+  } else {
+    parse_text_node(ctx, buffer);
+  }
 }
 
 export function parse_tag (ctx: Parser, buffer: string[]): void {
-	if (buffer[0] === '/') {
-		buffer.shift();
-		parse_closing_tag(ctx, buffer);
-	} else {
-		parse_opening_tag(ctx, buffer);
-	}	
+  if (buffer[0] === '/') {
+    buffer.shift();
+    parse_closing_tag(ctx, buffer);
+  } else {
+    parse_opening_tag(ctx, buffer);
+  }	
 }
 
 export function parse_closing_tag (ctx: Parser, buffer: string[]): void {
-	const top = ctx.stack[0];
+  const top = ctx.stack[0];
   invariant(top !== undefined, 'Stack is empty, no root node');
   const tag = read_tag_name(buffer);
 
-	if (tag !== top.tag) {
-		console.warn(`Unmatched closing tag "${tag}" in current context "${top.tag}"`);
-		/** 
+  if (tag !== top.tag) {
+    console.warn(`Unmatched closing tag "${tag}" in current context "${top.tag}"`);
+    /** 
 		 * Uses a similar recovery pattern to native HTML parsing, search upward
 		 * through the stack for a matching open tag and close all the open tags
 		 * within that node. This is helpful when trying to recover from a forgotten
@@ -164,89 +164,89 @@ export function parse_closing_tag (ctx: Parser, buffer: string[]): void {
 		 * 
 		 * close 'b'
 		 */ 
-		// 
-		const i = ctx.stack.findIndex(node => node.tag === tag) + 1;
-		if (i > 0) {
-			ctx.stack.splice(0, i);
-		}
-	} else  {
-		ctx.stack.shift();
-	}
-	const next_ch = buffer.shift();
-	if (next_ch === undefined) {
-		throw new SyntaxError('Unexpected end of string, expected \'>\'.');
-	}
-	if (next_ch !== '>') {
-		throw new SyntaxError(`Expected character ">" but received "${next_ch}".`);
-	}
+    // 
+    const i = ctx.stack.findIndex(node => node.tag === tag) + 1;
+    if (i > 0) {
+      ctx.stack.splice(0, i);
+    }
+  } else  {
+    ctx.stack.shift();
+  }
+  const next_ch = buffer.shift();
+  if (next_ch === undefined) {
+    throw new SyntaxError('Unexpected end of string, expected \'>\'.');
+  }
+  if (next_ch !== '>') {
+    throw new SyntaxError(`Expected character ">" but received "${next_ch}".`);
+  }
 }
 
 export function parse_opening_tag (ctx: Parser, buffer: string[]): void {
-	const child = { tag: read_tag_name(buffer) };
-	append_child(ctx, child);
-	ctx.stack.unshift(child);
-	parse_attributes(ctx, buffer);
-	// the node may, or may not, be closed by the time we reach here
+  const child = { tag: read_tag_name(buffer) };
+  append_child(ctx, child);
+  ctx.stack.unshift(child);
+  parse_attributes(ctx, buffer);
+  // the node may, or may not, be closed by the time we reach here
 }
 
 export function append_child (ctx: Parser, child: string | number | Template) {
-	const top = ctx.stack[0];
-	invariant(top !== undefined, 'Stack is empty, no root node');
-	let children = top.children;
-	if (!children) {
-		children = [];
-		top.children = children;
-	}
-	children.push(child);
+  const top = ctx.stack[0];
+  invariant(top !== undefined, 'Stack is empty, no root node');
+  let children = top.children;
+  if (!children) {
+    children = [];
+    top.children = children;
+  }
+  children.push(child);
 }
 
 export function append_attribute(ctx: Parser, name: string, child: string | number) {
-	const top = ctx.stack[0];
-	invariant(top !== undefined, 'Stack is empty, no root node');
-	let attributes = top.attributes;
-	if (!attributes) {
-		attributes = {};
-		top.attributes = attributes;
-	}
-	attributes[name] = child;
+  const top = ctx.stack[0];
+  invariant(top !== undefined, 'Stack is empty, no root node');
+  let attributes = top.attributes;
+  if (!attributes) {
+    attributes = {};
+    top.attributes = attributes;
+  }
+  attributes[name] = child;
 }
 
 export function read_tag_name (buffer: string[]): string {
-	// find the first invalid
-	const i = buffer.findIndex(ch => /[^a-z0-9-]/i.test(ch));
-	const length = i < 0 ? buffer.length : i;
+  // find the first invalid
+  const i = buffer.findIndex(ch => /[^a-z0-9-]/i.test(ch));
+  const length = i < 0 ? buffer.length : i;
 
   if (length === 0) {
     throw new Error('Unable to read tag name.');
   }
 
-	const tag_name = buffer.splice(0, length).join('');
+  const tag_name = buffer.splice(0, length).join('');
 
-	if (!TAG_NAME_REGEX.test(tag_name)) {
-		throw new Error(`Invalid tag name "${tag_name}".`);
-	}
+  if (!TAG_NAME_REGEX.test(tag_name)) {
+    throw new Error(`Invalid tag name "${tag_name}".`);
+  }
 
-	return tag_name;
+  return tag_name;
 }
 
 export function parse_text_node (ctx: Parser, buffer: string[]): void {
-	// extract every char until the next "<"
-	const i = buffer.indexOf('<');
-	const length = i < 0 ? buffer.length : i;
+  // extract every char until the next "<"
+  const i = buffer.indexOf('<');
+  const length = i < 0 ? buffer.length : i;
   if (length === 0) {
     return;
   }
-	const text = buffer.splice(0, length).join('');
-	append_child(ctx, text);
+  const text = buffer.splice(0, length).join('');
+  append_child(ctx, text);
 }
 
 export function close_parser (ctx: Parser): Template {
-	if (ctx.attribute_mode) {
-		throw new SyntaxError('Unterminated start tag');
-	}
-	// this implicitly closes any elements left on the stack
-	const last = ctx.stack.pop();
-	ctx.stack.length = 0;
-	invariant(last !== undefined, 'Stack is empty, no root node');
-	return last;
+  if (ctx.attribute_mode) {
+    throw new SyntaxError('Unterminated start tag');
+  }
+  // this implicitly closes any elements left on the stack
+  const last = ctx.stack.pop();
+  ctx.stack.length = 0;
+  invariant(last !== undefined, 'Stack is empty, no root node');
+  return last;
 }
