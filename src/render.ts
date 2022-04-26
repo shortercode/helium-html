@@ -5,8 +5,8 @@ import type { Template } from './Template.type';
 import type { Observable } from './Observable.type';
 import { is_observable } from './Observable';
 
-export function render_template (template: Template, parts: unknown[]): HTMLElement | DocumentFragment {	
-	const node = template.tag === FRAGMENT_TAG ? document.createDocumentFragment() : document.createElement(template.tag);
+export function render_template (template: Template, parts: unknown[], namespace: 'http://www.w3.org/2000/svg' | 'http://www.w3.org/1999/xhtml' = 'http://www.w3.org/1999/xhtml'): Element | DocumentFragment {	
+	const node = template.tag === FRAGMENT_TAG ? document.createDocumentFragment() : document.createElementNS(namespace, template.tag);
 
 	if (template.children) {
 		for (const child_template of template.children) {
@@ -28,7 +28,7 @@ export function render_template (template: Template, parts: unknown[]): HTMLElem
 					}
 				}
 			} else {
-				node.appendChild(render_template(child_template, parts));
+				node.appendChild(render_template(child_template, parts, namespace));
 			}
 		}
 	}

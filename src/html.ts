@@ -4,8 +4,17 @@ import type { Template } from './Template.type';
 
 const template_cache = new Map<TemplateStringsArray, Template>();
 
-export function html (literal: TemplateStringsArray, ...parts: unknown[]): DocumentFragment | HTMLElement {
-  let template = template_cache.get(literal);
+export function svg (literal: TemplateStringsArray, ...parts: unknown[]): DocumentFragment | Element {
+  return helium(literal, parts, 'http://www.w3.org/2000/svg');
+
+}
+
+export function html (literal: TemplateStringsArray, ...parts: unknown[]): DocumentFragment | Element {
+  return helium(literal, parts, 'http://www.w3.org/1999/xhtml');
+}
+
+export function helium (literal: TemplateStringsArray, parts: unknown[], namespace: 'http://www.w3.org/2000/svg' | 'http://www.w3.org/1999/xhtml'): DocumentFragment | Element {
+	let template = template_cache.get(literal);
 
   // first part can memoised based on the literal
   if (!template) {
@@ -19,7 +28,7 @@ export function html (literal: TemplateStringsArray, ...parts: unknown[]): Docum
   } 
 
   // this bit needs to be done fresh each time
-  return render_template(template, parts);
+  return render_template(template, parts, namespace);
 
 	// TODO the above always returns a fragment, because the root template is
 	// always a fragment. In the case that the fragment only contains 1 element

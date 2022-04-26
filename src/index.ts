@@ -1,4 +1,4 @@
-export { html } from './html';
+export { html, svg } from './html';
 export { children } from './children';
 
 export { Store, Emitter, AbstractObservable } from './Observable';
