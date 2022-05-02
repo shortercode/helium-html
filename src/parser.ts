@@ -30,16 +30,23 @@ export function parse_chunk (ctx: Parser, src: string, part_index: number) {
 }
 
 export function parse_attributes (ctx: Parser, buffer: string[]): void {
-  while(buffer.length > 0) {
+  do {
     consume_whitespace(buffer);
     if (buffer[0] === '/' || buffer[0] === '>') {
       break;
     }
-    // NOTE can also be used for attributes
-    const name = read_tag_name(buffer);
-    if (ctx.part_index === -1 && buffer.length === 0) {
-      throw new SyntaxError('Unexpected end of string, expected "=", "/>" or ">".');
+
+    if (ctx.part_index >= 0 && buffer.length === 0) {
+      throw new SyntaxError('Variable attribute names are not allowed.');
     }
+
+    // NOTE can also be used for attributes
+    const name = read_label(buffer);
+
+    if (ctx.part_index >= 0 && buffer.length === 0) {
+      throw new SyntaxError('Expected "=".');
+    }
+
     if (buffer[0] === '=') {
       // consume "="
       buffer.shift();
@@ -48,7 +55,7 @@ export function parse_attributes (ctx: Parser, buffer: string[]): void {
     } else {
       append_attribute(ctx, name, '');
     }
-  }
+  } while(buffer.length > 0);
 
   if (ctx.part_index >= 0 && buffer.length === 0) {
     ctx.attribute_mode = true;
@@ -67,10 +74,10 @@ export function parse_attributes (ctx: Parser, buffer: string[]): void {
   // consume '>'
   const next_ch = buffer.shift();
   if (next_ch === undefined) {
-    throw new SyntaxError('Unexpected end of string, expected \'/>\'.');
+    throw new SyntaxError('Expected \'/>\'.');
   }
   if (next_ch !== '>') {
-    throw new SyntaxError(`Expected '>' but found ${next_ch}`);
+    throw new SyntaxError(`Expected '>' but found '${next_ch}'.`);
   }
 }
 
@@ -81,7 +88,7 @@ export function get_attribute_value (ctx: Parser, buffer: string[]): string | nu
     if (ctx.part_index > -1) {
       return ctx.part_index;
     }
-    throw new SyntaxError('Unexpected end of string, expected \'"\'.');
+    throw new SyntaxError('Expected \'"\'.');
   }
   if (next_ch !== '"') {
     throw new SyntaxError(`Expected '"' but found '${next_ch}'.`);
@@ -140,7 +147,7 @@ export function parse_tag (ctx: Parser, buffer: string[]): void {
 export function parse_closing_tag (ctx: Parser, buffer: string[]): void {
   const top = ctx.stack[0];
   invariant(top !== undefined, 'Stack is empty, no root node');
-  const tag = read_tag_name(buffer);
+  const tag = read_label(buffer);
 
   if (tag !== top.tag) {
     console.warn(`Unmatched closing tag "${tag}" in current context "${top.tag}"`);
@@ -182,7 +189,7 @@ export function parse_closing_tag (ctx: Parser, buffer: string[]): void {
 }
 
 export function parse_opening_tag (ctx: Parser, buffer: string[]): void {
-  const child = { tag: read_tag_name(buffer) };
+  const child = { tag: read_label(buffer) };
   append_child(ctx, child);
   ctx.stack.unshift(child);
   parse_attributes(ctx, buffer);
@@ -211,19 +218,19 @@ export function append_attribute(ctx: Parser, name: string, child: string | numb
   attributes[name] = child;
 }
 
-export function read_tag_name (buffer: string[]): string {
+export function read_label (buffer: string[]): string {
   // find the first invalid
   const i = buffer.findIndex(ch => /[^a-z0-9-]/i.test(ch));
   const length = i < 0 ? buffer.length : i;
 
   if (length === 0) {
-    throw new Error('Unable to read tag name.');
+    throw new Error('Unable to read name.');
   }
 
   const tag_name = buffer.splice(0, length).join('');
 
   if (!TAG_NAME_REGEX.test(tag_name)) {
-    throw new Error(`Invalid tag name "${tag_name}".`);
+    throw new Error(`Invalid name "${tag_name}".`);
   }
 
   return tag_name;

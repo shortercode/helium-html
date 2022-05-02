@@ -1,7 +1,8 @@
 import { Dictionary, Index, invariant } from 'ts-runtime-typecheck';
-import { append_attribute, append_child, close_parser, consume_whitespace, create_parser, get_attribute_value, parse_attributes, parse_closing_tag, parse_node, parse_nodes, parse_opening_tag, parse_tag, parse_text_node, read_tag_name } from './parser';
+import { append_attribute, append_child, close_parser, consume_whitespace, create_parser, get_attribute_value, parse_attributes, parse_chunk, parse_closing_tag, parse_node, parse_nodes, parse_opening_tag, parse_tag, parse_text_node, read_label } from './parser';
 import type { Parser } from './Parser.type';
 import { FRAGMENT_TAG } from './Template.constants';
+import type { Template } from './Template.type';
 
 describe('create_parser', () => {
   test('', () => {
@@ -14,21 +15,48 @@ describe('create_parser', () => {
 });
 
 describe('parse_chunk', () => {
-  test.todo('parses nodes by default');
-  test.todo('resumes attribute parsing if attribute mode is set');
-  test.todo('sets part_index');
+  test('parses nodes by default', () => {
+    const ctx = create_parser();
+    parse_chunk(ctx, '<a-node>', 0);
+    expect(ctx.stack[0]).toStrictEqual({
+      tag: 'a-node',
+      children: [ 0 ]
+    });
+    expect(ctx.part_index).toBe(0);
+    expect(ctx.attribute_mode).toBe(false);
+
+    parse_chunk(ctx, 'hello', 1);
+    expect(ctx.stack[0]).toStrictEqual({
+      tag: 'a-node',
+      children: [ 0, 'hello', 1 ]
+    });
+    expect(ctx.part_index).toBe(1);
+    expect(ctx.attribute_mode).toBe(false);
+  });
+  test('resumes attribute parsing if attribute mode is set', () => {
+    const ctx = create_parser();
+    parse_chunk(ctx, '<a-node a=', 0);
+    expect(ctx.stack[0]).toStrictEqual({
+      tag: 'a-node',
+      attributes: { a: 0 }
+    });
+    expect(ctx.part_index).toBe(0);
+    expect(ctx.attribute_mode).toBe(true);
+
+    parse_chunk(ctx, 'b=', 1);
+    expect(ctx.stack[0]).toStrictEqual({
+      tag: 'a-node',
+      attributes: { a: 0, b: 1 }
+    });
+    expect(ctx.part_index).toBe(1);
+    expect(ctx.attribute_mode).toBe(true);
+  });
 });
 
 describe('parse_attributes', () => {
   test('empty buffer', () => {
     const ctx = create_parser();
-    ctx.part_index = 0;
-    parse_attributes(ctx, []);
-    expect(ctx).toStrictEqual({
-      part_index: 0,
-      attribute_mode: true,
-      stack: [ { tag: FRAGMENT_TAG, children: [] }],
-    });
+    expect(() => parse_attributes(ctx, [])).toThrow('Unable to read name.');
   });
   test('immediate self close', () => {
     const ctx: Parser = {
@@ -45,16 +73,196 @@ describe('parse_attributes', () => {
     });
     expect(buffer.length).toBe(0);
   });
-  test.todo('no attributes');
-  test.todo('multiple attributes');
-  test.todo('whitespace then self close');
-  test.todo('whitespace then no attributes');
-  test.todo('boolean attribute');
-  test.todo('variable attribute');
-  test.todo('buffer end after attribute name');
-  test.todo('missing angle bracket at end');
-  test.todo('angle bracket at end replaced with invalid char');
-  test.todo('resumability');
+  test('no attributes', () => {
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+    };
+    const buffer = Array.from('>');
+    parse_attributes(ctx, buffer);
+    expect(ctx).toStrictEqual({
+      part_index: -1,
+      attribute_mode: false,
+      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}],
+    });
+    expect(buffer.length).toBe(0);
+  });
+  test('multiple attributes', () => {
+    const child: Template = { tag: 'a' };
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}]
+    };
+    const buffer = Array.from('a b="value" c/>');
+    parse_attributes(ctx, buffer);
+    expect(ctx).toStrictEqual({
+      part_index: -1,
+      attribute_mode: false,
+      stack: [ { tag: FRAGMENT_TAG, children: [ child ]}],
+    });
+    expect(child).toStrictEqual({
+      tag: 'a',
+      attributes: {
+        a: '',
+        b: 'value',
+        c: '',
+      },
+    });
+    expect(buffer.length).toBe(0);
+  });
+  test('whitespace then self close', () => {
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+    };
+    const buffer = Array.from('                         \n\n  \n        />');
+    parse_attributes(ctx, buffer);
+    expect(ctx).toStrictEqual({
+      part_index: -1,
+      attribute_mode: false,
+      stack: [ { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ] }],
+    });
+    expect(buffer.length).toBe(0);
+  });
+  test('whitespace then no attributes', () => {
+    const ctx: Parser = {
+      part_index: 0,
+      attribute_mode: false,
+      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+    };
+    const buffer = Array.from('                         \n\n  \n        ');
+    expect(() => parse_attributes(ctx, buffer)).toThrow('Variable attribute names are not allowed.');
+  });
+  test('boolean attribute', () => {
+    const child: Template = { tag: 'a' };
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}]
+    };
+    const buffer = Array.from('a/>');
+    parse_attributes(ctx, buffer);
+    expect(ctx).toStrictEqual({
+      part_index: -1,
+      attribute_mode: false,
+      stack: [ { tag: FRAGMENT_TAG, children: [ child ]}],
+    });
+    expect(child).toStrictEqual({
+      tag: 'a',
+      attributes: {
+        a: '',
+      },
+    });
+    expect(buffer.length).toBe(0);
+  });
+  test('variable attribute', () => {
+    const child: Template = { tag: 'a' };
+    const ctx: Parser = {
+      part_index: 42,
+      attribute_mode: false,
+      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}]
+    };
+    const buffer = Array.from('a=');
+    parse_attributes(ctx, buffer);
+    expect(ctx).toStrictEqual({
+      part_index: 42,
+      attribute_mode: true,
+      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}],
+    });
+    expect(child).toStrictEqual({
+      tag: 'a',
+      attributes: {
+        a: 42,
+      },
+    });
+    expect(buffer.length).toBe(0);
+  });
+  test('buffer end after attribute name', () => {
+    const ctx: Parser = {
+      part_index: 42,
+      attribute_mode: false,
+      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+    };
+    const buffer = Array.from('a');
+    expect(() => parse_attributes(ctx, buffer)).toThrow('Expected "=".');
+  });
+  test('missing angle bracket at end', () => {
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+    };
+    const buffer = Array.from('a');
+    expect(() => parse_attributes(ctx, buffer)).toThrow('Expected \'/>\'.');
+  });
+  test('angle bracket at end replaced with invalid char', () => {
+    const ctx: Parser = {
+      part_index: -1,
+      attribute_mode: false,
+      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+    };
+    const buffer = Array.from('a /<');
+    expect(() => parse_attributes(ctx, buffer)).toThrow('Expected \'>\' but found \'<\'.');
+  });
+  test('resumability', () => {
+    const child: Template = { tag: 'a' };
+    const ctx: Parser = {
+      part_index: 0,
+      attribute_mode: false,
+      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}]
+    };
+    const buffer_0 = Array.from('a=');
+    parse_attributes(ctx, buffer_0);
+    expect(ctx).toStrictEqual({
+      part_index: 0,
+      attribute_mode: true,
+      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}],
+    });
+    expect(child).toStrictEqual({
+      tag: 'a',
+      attributes: {
+        a: 0,
+      },
+    });
+    expect(buffer_0.length).toBe(0);
+
+    const buffer_1 = Array.from('b=');
+    ctx.part_index = 1;
+    parse_attributes(ctx, buffer_1);
+    expect(ctx).toStrictEqual({
+      part_index: 1,
+      attribute_mode: true,
+      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}],
+    });
+    expect(child).toStrictEqual({
+      tag: 'a',
+      attributes: {
+        a: 0,
+        b: 1,
+      },
+    });
+    expect(buffer_1.length).toBe(0);
+
+    const buffer_2 = Array.from(' />');
+    ctx.part_index = -1;
+    parse_attributes(ctx, buffer_2);
+    expect(ctx).toStrictEqual({
+      part_index: -1,
+      attribute_mode: false,
+      stack: [{ tag: FRAGMENT_TAG, children: [ child ]}],
+    });
+    expect(child).toStrictEqual({
+      tag: 'a',
+      attributes: {
+        a: 0,
+        b: 1,
+      },
+    });
+    expect(buffer_2.length).toBe(0);
+  });
 });
 
 describe('get_attribute_value', () => {
@@ -65,7 +273,7 @@ describe('get_attribute_value', () => {
   });
   test('empty string', () => {
     const ctx = create_parser();
-    expect(() => get_attribute_value(ctx, [])).toThrow('Unexpected end of string, expected \'"\'.');
+    expect(() => get_attribute_value(ctx, [])).toThrow('Expected \'"\'.');
   });
   test('missing " at start', () => {
     const ctx = create_parser();
@@ -449,24 +657,13 @@ describe('parse_opening_tag', () => {
       const ctx = create_parser();
       ctx.part_index = 0;
       const buffer = Array.from('hello');
-      parse_opening_tag(ctx, buffer);
-      expect(ctx.stack[0]).toStrictEqual({
-        tag: 'hello'
-      });
-      expect(buffer.length).toBe(0);
-      expect(ctx.attribute_mode).toBe(true);
+      expect(() => parse_opening_tag(ctx, buffer)).toThrow('Variable attribute names are not allowed.');
     });
     test('with some attributes', () => {
       const ctx = create_parser();
       ctx.part_index = 0;
       const buffer = Array.from('hello a b="value" c');
-      parse_opening_tag(ctx, buffer);
-      expect(ctx.stack[0]).toStrictEqual({
-        tag: 'hello',
-        attributes: { a: '', b: 'value', c: '' }
-      });
-      expect(buffer.length).toBe(0);
-      expect(ctx.attribute_mode).toBe(true);
+      expect(() => parse_opening_tag(ctx, buffer)).toThrow('Expected "=".');
     });
     test('with variable attribute', () => {
       const ctx = create_parser();
@@ -582,28 +779,28 @@ describe('append_attribute', () => {
 describe('read_tag_name', () => {
   test('does not read past spaces', () => {
     const buffer = Array.from('hello world');
-    expect(read_tag_name(buffer)).toBe('hello');
+    expect(read_label(buffer)).toBe('hello');
     expect(buffer.length).toBe(6);
   });
   test('includes dashes', () => {
     const buffer = Array.from('hello-world');
-    expect(read_tag_name(buffer)).toBe('hello-world');
+    expect(read_label(buffer)).toBe('hello-world');
     expect(buffer.length).toBe(0); 
   });
   test('reject invalid names', () => {
     const buffer = Array.from('hello--world');
-    expect(() => read_tag_name(buffer)).toThrow('Invalid tag name "hello--world".');
+    expect(() => read_label(buffer)).toThrow('Invalid name "hello--world".');
   });
   test('allows numbers', () => {
     const buffer = Array.from('h1');
-    expect(read_tag_name(buffer)).toBe('h1');
+    expect(read_label(buffer)).toBe('h1');
     expect(buffer.length).toBe(0);
   });
   test('throws if no characters available', () => {
-    expect(() => read_tag_name([])).toThrow('Unable to read tag name.');
+    expect(() => read_label([])).toThrow('Unable to read name.');
   });
   test('throws if leading character is invalid ', () => {
-    expect(() => read_tag_name(['<'])).toThrow('Unable to read tag name.');
+    expect(() => read_label(['<'])).toThrow('Unable to read name.');
   });
 });
 
