@@ -1,4 +1,4 @@
-import { html } from './html';
+import { html, svg } from './html';
 
 describe('html', () => {
   test('simple', () => {
@@ -27,5 +27,16 @@ describe('html', () => {
     expect(node.firstElementChild?.tagName).toBe('DIV');
     expect(node.firstElementChild?.attributes.getNamedItem('title')?.value).toBe('Hello World');
     expect(node.firstElementChild?.textContent).toBe('Hello World');
+  });
+});
+
+describe('svg', () => {
+  test('simple', () => {
+    const node = svg`<svg width="300" height="200"><rect width="100%" height="100%" fill="red" /></svg>`;
+
+    expect(node).toBeInstanceOf(DocumentFragment);
+    expect(node.children.length).toBe(1);
+    expect(node.firstElementChild?.tagName).toBe('svg');
+    expect(node.firstElementChild?.firstElementChild?.tagName).toBe('rect');
   });
 });

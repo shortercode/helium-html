@@ -8,7 +8,7 @@ describe('create_parser', () => {
   test('', () => {
     expect(create_parser()).toStrictEqual({
       part_index: -1,
-      stack: [{ tag: FRAGMENT_TAG, children: []}],
+      stack: [{ tag: FRAGMENT_TAG, children: [] }],
       attribute_mode: false
     });
   });
@@ -20,7 +20,7 @@ describe('parse_chunk', () => {
     parse_chunk(ctx, '<a-node>', 0);
     expect(ctx.stack[0]).toStrictEqual({
       tag: 'a-node',
-      children: [ 0 ]
+      children: [0]
     });
     expect(ctx.part_index).toBe(0);
     expect(ctx.attribute_mode).toBe(false);
@@ -28,7 +28,7 @@ describe('parse_chunk', () => {
     parse_chunk(ctx, 'hello', 1);
     expect(ctx.stack[0]).toStrictEqual({
       tag: 'a-node',
-      children: [ 0, 'hello', 1 ]
+      children: [0, 'hello', 1]
     });
     expect(ctx.part_index).toBe(1);
     expect(ctx.attribute_mode).toBe(false);
@@ -62,14 +62,14 @@ describe('parse_attributes', () => {
     const ctx: Parser = {
       part_index: -1,
       attribute_mode: false,
-      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+      stack: [{ tag: 'a' }, { tag: FRAGMENT_TAG, children: [{ tag: 'a' }] }]
     };
     const buffer = Array.from('/>');
     parse_attributes(ctx, buffer);
     expect(ctx).toStrictEqual({
       part_index: -1,
       attribute_mode: false,
-      stack: [ { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ] }],
+      stack: [{ tag: FRAGMENT_TAG, children: [{ tag: 'a' }] }],
     });
     expect(buffer.length).toBe(0);
   });
@@ -77,14 +77,14 @@ describe('parse_attributes', () => {
     const ctx: Parser = {
       part_index: -1,
       attribute_mode: false,
-      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+      stack: [{ tag: 'a' }, { tag: FRAGMENT_TAG, children: [{ tag: 'a' }] }]
     };
     const buffer = Array.from('>');
     parse_attributes(ctx, buffer);
     expect(ctx).toStrictEqual({
       part_index: -1,
       attribute_mode: false,
-      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}],
+      stack: [{ tag: 'a' }, { tag: FRAGMENT_TAG, children: [{ tag: 'a' }] }],
     });
     expect(buffer.length).toBe(0);
   });
@@ -93,14 +93,14 @@ describe('parse_attributes', () => {
     const ctx: Parser = {
       part_index: -1,
       attribute_mode: false,
-      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}]
+      stack: [child, { tag: FRAGMENT_TAG, children: [child] }]
     };
     const buffer = Array.from('a b="value" c/>');
     parse_attributes(ctx, buffer);
     expect(ctx).toStrictEqual({
       part_index: -1,
       attribute_mode: false,
-      stack: [ { tag: FRAGMENT_TAG, children: [ child ]}],
+      stack: [{ tag: FRAGMENT_TAG, children: [child] }],
     });
     expect(child).toStrictEqual({
       tag: 'a',
@@ -116,14 +116,14 @@ describe('parse_attributes', () => {
     const ctx: Parser = {
       part_index: -1,
       attribute_mode: false,
-      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+      stack: [{ tag: 'a' }, { tag: FRAGMENT_TAG, children: [{ tag: 'a' }] }]
     };
     const buffer = Array.from('                         \n\n  \n        />');
     parse_attributes(ctx, buffer);
     expect(ctx).toStrictEqual({
       part_index: -1,
       attribute_mode: false,
-      stack: [ { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ] }],
+      stack: [{ tag: FRAGMENT_TAG, children: [{ tag: 'a' }] }],
     });
     expect(buffer.length).toBe(0);
   });
@@ -131,7 +131,7 @@ describe('parse_attributes', () => {
     const ctx: Parser = {
       part_index: 0,
       attribute_mode: false,
-      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+      stack: [{ tag: 'a' }, { tag: FRAGMENT_TAG, children: [{ tag: 'a' }] }]
     };
     const buffer = Array.from('                         \n\n  \n        ');
     expect(() => parse_attributes(ctx, buffer)).toThrow('Variable attribute names are not allowed.');
@@ -141,14 +141,14 @@ describe('parse_attributes', () => {
     const ctx: Parser = {
       part_index: -1,
       attribute_mode: false,
-      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}]
+      stack: [child, { tag: FRAGMENT_TAG, children: [child] }]
     };
     const buffer = Array.from('a/>');
     parse_attributes(ctx, buffer);
     expect(ctx).toStrictEqual({
       part_index: -1,
       attribute_mode: false,
-      stack: [ { tag: FRAGMENT_TAG, children: [ child ]}],
+      stack: [{ tag: FRAGMENT_TAG, children: [child] }],
     });
     expect(child).toStrictEqual({
       tag: 'a',
@@ -163,14 +163,14 @@ describe('parse_attributes', () => {
     const ctx: Parser = {
       part_index: 42,
       attribute_mode: false,
-      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}]
+      stack: [child, { tag: FRAGMENT_TAG, children: [child] }]
     };
     const buffer = Array.from('a=');
     parse_attributes(ctx, buffer);
     expect(ctx).toStrictEqual({
       part_index: 42,
       attribute_mode: true,
-      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}],
+      stack: [child, { tag: FRAGMENT_TAG, children: [child] }],
     });
     expect(child).toStrictEqual({
       tag: 'a',
@@ -184,7 +184,7 @@ describe('parse_attributes', () => {
     const ctx: Parser = {
       part_index: 42,
       attribute_mode: false,
-      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+      stack: [{ tag: 'a' }, { tag: FRAGMENT_TAG, children: [{ tag: 'a' }] }]
     };
     const buffer = Array.from('a');
     expect(() => parse_attributes(ctx, buffer)).toThrow('Expected "=".');
@@ -193,7 +193,7 @@ describe('parse_attributes', () => {
     const ctx: Parser = {
       part_index: -1,
       attribute_mode: false,
-      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+      stack: [{ tag: 'a' }, { tag: FRAGMENT_TAG, children: [{ tag: 'a' }] }]
     };
     const buffer = Array.from('a');
     expect(() => parse_attributes(ctx, buffer)).toThrow('Expected \'/>\'.');
@@ -202,7 +202,7 @@ describe('parse_attributes', () => {
     const ctx: Parser = {
       part_index: -1,
       attribute_mode: false,
-      stack: [ { tag: 'a' }, { tag: FRAGMENT_TAG, children: [ { tag: 'a' } ]}]
+      stack: [{ tag: 'a' }, { tag: FRAGMENT_TAG, children: [{ tag: 'a' }] }]
     };
     const buffer = Array.from('a /<');
     expect(() => parse_attributes(ctx, buffer)).toThrow('Expected \'>\' but found \'<\'.');
@@ -212,14 +212,14 @@ describe('parse_attributes', () => {
     const ctx: Parser = {
       part_index: 0,
       attribute_mode: false,
-      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}]
+      stack: [child, { tag: FRAGMENT_TAG, children: [child] }]
     };
     const buffer_0 = Array.from('a=');
     parse_attributes(ctx, buffer_0);
     expect(ctx).toStrictEqual({
       part_index: 0,
       attribute_mode: true,
-      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}],
+      stack: [child, { tag: FRAGMENT_TAG, children: [child] }],
     });
     expect(child).toStrictEqual({
       tag: 'a',
@@ -235,7 +235,7 @@ describe('parse_attributes', () => {
     expect(ctx).toStrictEqual({
       part_index: 1,
       attribute_mode: true,
-      stack: [ child, { tag: FRAGMENT_TAG, children: [ child ]}],
+      stack: [child, { tag: FRAGMENT_TAG, children: [child] }],
     });
     expect(child).toStrictEqual({
       tag: 'a',
@@ -252,7 +252,7 @@ describe('parse_attributes', () => {
     expect(ctx).toStrictEqual({
       part_index: -1,
       attribute_mode: false,
-      stack: [{ tag: FRAGMENT_TAG, children: [ child ]}],
+      stack: [{ tag: FRAGMENT_TAG, children: [child] }],
     });
     expect(child).toStrictEqual({
       tag: 'a',
@@ -321,7 +321,7 @@ describe('parse_nodes', () => {
     expect(ctx).toStrictEqual({
       part_index: -1,
       attribute_mode: false,
-      stack: [ { tag: FRAGMENT_TAG, children: [] }]
+      stack: [{ tag: FRAGMENT_TAG, children: [] }]
     });
   });
   test('parse attributes first if attribute mode is set', () => {
@@ -331,7 +331,7 @@ describe('parse_nodes', () => {
       attribute_mode: true,
       stack: [
         target_node,
-        { tag: FRAGMENT_TAG, children: [ target_node ]}
+        { tag: FRAGMENT_TAG, children: [target_node] }
       ]
     };
 
@@ -435,7 +435,7 @@ describe('parse_node', () => {
     expect(ctx.stack).toStrictEqual([
       {
         tag: FRAGMENT_TAG,
-        children: [ { tag: 'hello' } ],
+        children: [{ tag: 'hello' }],
       }
     ]);
     expect(buffer.length).toBe(0);
@@ -447,7 +447,7 @@ describe('parse_node', () => {
     expect(ctx.stack).toStrictEqual([
       {
         tag: FRAGMENT_TAG,
-        children: [ 'hello' ],
+        children: ['hello'],
       }
     ]);
     expect(buffer.length).toBe(0);
@@ -461,7 +461,7 @@ describe('parse_tag', () => {
     parse_tag(ctx, buffer);
     expect(ctx.stack).toStrictEqual([
       { tag: 'hello' },
-      { tag: FRAGMENT_TAG, children: [ { tag: 'hello' }] }
+      { tag: FRAGMENT_TAG, children: [{ tag: 'hello' }] }
     ]);
     expect(buffer.length).toBe(0);
   });
@@ -471,14 +471,14 @@ describe('parse_tag', () => {
       attribute_mode: false,
       stack: [
         { tag: 'hello' },
-        { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+        { tag: FRAGMENT_TAG, children: [{ tag: 'hello' }] }
       ]
     };
-    
+
     const buffer = Array.from('/hello>');
     parse_tag(ctx, buffer);
     expect(ctx.stack).toStrictEqual([
-      { tag: FRAGMENT_TAG, children: [ { tag: 'hello' }] }
+      { tag: FRAGMENT_TAG, children: [{ tag: 'hello' }] }
     ]);
     expect(buffer.length).toBe(0);
   });
@@ -491,16 +491,16 @@ describe('parse_closing_tag', () => {
       attribute_mode: false,
       stack: [
         { tag: 'hello' },
-        { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+        { tag: FRAGMENT_TAG, children: [{ tag: 'hello' }] }
       ]
     };
-    
+
     const buffer = Array.from('hello>');
 
     parse_closing_tag(ctx, buffer);
 
     expect(ctx.stack).toStrictEqual([
-      { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+      { tag: FRAGMENT_TAG, children: [{ tag: 'hello' }] }
     ]);
     expect(buffer.length).toBe(0);
   });
@@ -510,17 +510,17 @@ describe('parse_closing_tag', () => {
       attribute_mode: false,
       stack: [
         { tag: 'hello' },
-        { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+        { tag: FRAGMENT_TAG, children: [{ tag: 'hello' }] }
       ]
     };
-    
+
     const buffer = Array.from('goodbye>');
 
     parse_closing_tag(ctx, buffer);
 
     expect(ctx.stack).toStrictEqual([
       { tag: 'hello' },
-      { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+      { tag: FRAGMENT_TAG, children: [{ tag: 'hello' }] }
     ]);
     expect(buffer.length).toBe(0);
   });
@@ -530,17 +530,17 @@ describe('parse_closing_tag', () => {
       attribute_mode: false,
       stack: [
         { tag: 'goodbye' },
-        { tag: 'hello', children: [ { tag: 'goodbye' }] },
-        { tag: FRAGMENT_TAG, children: [ { tag: 'hello', children: [ { tag: 'goodbye' }] } ]}
+        { tag: 'hello', children: [{ tag: 'goodbye' }] },
+        { tag: FRAGMENT_TAG, children: [{ tag: 'hello', children: [{ tag: 'goodbye' }] }] }
       ]
     };
-    
+
     const buffer = Array.from('hello>');
 
     parse_closing_tag(ctx, buffer);
 
     expect(ctx.stack).toStrictEqual([
-      { tag: FRAGMENT_TAG, children: [ { tag: 'hello', children: [ { tag: 'goodbye' }] } ]}
+      { tag: FRAGMENT_TAG, children: [{ tag: 'hello', children: [{ tag: 'goodbye' }] }] }
     ]);
     expect(buffer.length).toBe(0);
   });
@@ -561,10 +561,10 @@ describe('parse_closing_tag', () => {
       attribute_mode: false,
       stack: [
         { tag: 'hello' },
-        { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+        { tag: FRAGMENT_TAG, children: [{ tag: 'hello' }] }
       ]
     };
-    
+
     const buffer = Array.from('hello');
 
     expect(() => parse_closing_tag(ctx, buffer)).toThrow('Unexpected end of string, expected \'>\'.');
@@ -575,10 +575,10 @@ describe('parse_closing_tag', () => {
       attribute_mode: false,
       stack: [
         { tag: 'hello' },
-        { tag: FRAGMENT_TAG, children: [ { tag: 'hello' } ]}
+        { tag: FRAGMENT_TAG, children: [{ tag: 'hello' }] }
       ]
     };
-    
+
     const buffer = Array.from('hello<');
 
     expect(() => parse_closing_tag(ctx, buffer)).toThrow('Expected character ">" but received "<".');
@@ -602,7 +602,7 @@ describe('parse_opening_tag', () => {
       parse_opening_tag(ctx, buffer);
       expect(ctx.stack[0]).toStrictEqual({
         tag: FRAGMENT_TAG,
-        children: [ { tag: 'hello' } ]
+        children: [{ tag: 'hello' }]
       });
       expect(buffer.length).toBe(0);
     });
@@ -785,7 +785,7 @@ describe('read_tag_name', () => {
   test('includes dashes', () => {
     const buffer = Array.from('hello-world');
     expect(read_label(buffer)).toBe('hello-world');
-    expect(buffer.length).toBe(0); 
+    expect(buffer.length).toBe(0);
   });
   test('reject invalid names', () => {
     const buffer = Array.from('hello--world');
@@ -810,16 +810,16 @@ describe('parse_text_node', () => {
     parse_text_node(ctx, []);
     expect(ctx).toStrictEqual({
       part_index: -1,
-      stack: [{ tag: FRAGMENT_TAG, children: []}],
+      stack: [{ tag: FRAGMENT_TAG, children: [] }],
       attribute_mode: false
     });
   });
   test('does not append a node when next char is angle bracket', () => {
     const ctx = create_parser();
-    parse_text_node(ctx, [ '<' ]);
+    parse_text_node(ctx, ['<']);
     expect(ctx).toStrictEqual({
       part_index: -1,
-      stack: [{ tag: FRAGMENT_TAG, children: []}],
+      stack: [{ tag: FRAGMENT_TAG, children: [] }],
       attribute_mode: false
     });
   });
@@ -829,7 +829,7 @@ describe('parse_text_node', () => {
     parse_text_node(ctx, buffer);
     expect(ctx).toStrictEqual({
       part_index: -1,
-      stack: [{ tag: FRAGMENT_TAG, children: [ 'hello world' ]}],
+      stack: [{ tag: FRAGMENT_TAG, children: ['hello world'] }],
       attribute_mode: false
     });
     expect(buffer.length).toBe(0);
@@ -840,7 +840,7 @@ describe('parse_text_node', () => {
     parse_text_node(ctx, buffer);
     expect(ctx).toStrictEqual({
       part_index: -1,
-      stack: [{ tag: FRAGMENT_TAG, children: [ 'hello ' ]}],
+      stack: [{ tag: FRAGMENT_TAG, children: ['hello '] }],
       attribute_mode: false
     });
     expect(buffer.length).toBe(16);
@@ -860,6 +860,6 @@ describe('close_parser', () => {
   });
   test('empties the stack', () => {
     const ctx = create_parser();
-    expect(close_parser(ctx)).toStrictEqual({ tag: FRAGMENT_TAG, children: []});
+    expect(close_parser(ctx)).toStrictEqual({ tag: FRAGMENT_TAG, children: [] });
   });
 });

@@ -1,25 +1,26 @@
+import type { Part } from './Child.type';
+import type { Observable } from './Observable.type';
 import { close_parser, create_parser, parse_chunk } from './parser';
 import { render_template } from './render';
 import type { Template } from './Template.type';
 
 const template_cache = new Map<TemplateStringsArray, Template>();
 
-export function svg (literal: TemplateStringsArray, ...parts: unknown[]): DocumentFragment | Element {
+export function svg (literal: TemplateStringsArray, ...parts: Array<Part | Observable<Part>>): DocumentFragment | Element {
   return helium(literal, parts, 'http://www.w3.org/2000/svg');
-
 }
 
-export function html (literal: TemplateStringsArray, ...parts: unknown[]): DocumentFragment | Element {
+export function html (literal: TemplateStringsArray, ...parts: Array<Part | Observable<Part>>): DocumentFragment | Element {
   return helium(literal, parts, 'http://www.w3.org/1999/xhtml');
 }
 
-export function helium (literal: TemplateStringsArray, parts: unknown[], namespace: 'http://www.w3.org/2000/svg' | 'http://www.w3.org/1999/xhtml'): DocumentFragment | Element {
+export function helium (literal: TemplateStringsArray, parts: Array<Part | Observable<Part>>, namespace: 'http://www.w3.org/2000/svg' | 'http://www.w3.org/1999/xhtml'): DocumentFragment | Element {
   let template = template_cache.get(literal);
 
   // first part can memoised based on the literal
   if (!template) {
     const ctx = create_parser();
-    const l = literal.raw.length;
+    const l = parts.length;
     for (const [i, chunk] of literal.raw.entries()) {
       // NOTE no associated part with the last chunk, so pass an index of -1
       parse_chunk(ctx, chunk, i < l ? i : - 1);

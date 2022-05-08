@@ -17,6 +17,7 @@ export abstract class AbstractObservable<T> implements Observable<T>, Disposable
   }
   
   filter<R extends T> (predicate: (value: T) => value is R): Observable<R>;
+  filter(predicate: (value: T) => boolean): Observable<T>;
   filter(predicate: (value: T) => boolean): Observable<T> {
     return new SimpleObservable(
       listener => this.watch(value => {
@@ -43,7 +44,7 @@ export class SimpleObservable<T> extends AbstractObservable<T> {
 
   watch(next: Listener<T>): Disposable {
     if (this.closed) {
-      throw new Error('Unable to watch, Observable has been closed');
+      throw new Error('Unable to watch, Observable has been closed.');
     }
     const inner_dispose = this.subscriber(next);
     const dispose = () => {
@@ -52,6 +53,7 @@ export class SimpleObservable<T> extends AbstractObservable<T> {
         inner_dispose.dispose();
       }
     };
+    this.subscriptions.add(dispose);
     return { dispose };
   }
   dispose(): void {

@@ -1,11 +1,13 @@
-import { invariant, isDefined } from 'ts-runtime-typecheck';
+import { invariant, isDefined, isNullish, isPrimitive, makeString, Primitive } from 'ts-runtime-typecheck';
 import { zip } from './zip';
 import { FRAGMENT_TAG } from './Template.constants';
-import type { Template } from './Template.type';
-import type { Observable } from './Observable.type';
 import { is_observable } from './Observable';
 
-export function render_template (template: Template, parts: unknown[], namespace: 'http://www.w3.org/2000/svg' | 'http://www.w3.org/1999/xhtml' = 'http://www.w3.org/1999/xhtml'): Element | DocumentFragment {	
+import type { Template } from './Template.type';
+import type { Disposable, Observable } from './Observable.type';
+import type { ObservableOrPart, Part } from './Child.type';
+
+export function render_template (template: Template, parts: ObservableOrPart[], namespace: 'http://www.w3.org/2000/svg' | 'http://www.w3.org/1999/xhtml' = 'http://www.w3.org/1999/xhtml'): Element | DocumentFragment {	
   const node = template.tag === FRAGMENT_TAG ? document.createDocumentFragment() : document.createElementNS(namespace, template.tag);
 
   if (template.children) {
@@ -16,15 +18,16 @@ export function render_template (template: Template, parts: unknown[], namespace
         const part = parts[child_template];
         const subparts = Array.isArray(part) ? part : [part];
         for (const sub of subparts) {
-          if (part instanceof Node) {
-            node.appendChild(part);
-          } else if (is_observable(part)) {
+          if (sub instanceof Node) {
+            node.appendChild(sub);
+          } else if (is_observable(sub)) {
             const stub = create_placeholder_node();
             node.appendChild(stub);
-            bind_store_to_node(part, stub);
-          } else {
-            const text = typeof sub === 'string' ? sub : JSON.stringify(part);
-            node.appendChild(document.createTextNode(text));
+            // TODO we need a way to clean these up automatically
+            bind_store_to_node(sub, stub);
+          } else if (isDefined(sub)){
+            // TODO insert error if subpart is a function & add test
+            node.appendChild(document.createTextNode(makeString(sub)));
           }
         }
       } else {
@@ -35,21 +38,24 @@ export function render_template (template: Template, parts: unknown[], namespace
 
   if (template.attributes) {
     if (node instanceof DocumentFragment) {
-      // TODO write error message
-      throw new Error('');
+      throw new Error('Unable to add attributes to a DocumentFragment.');
     }
     for (const [key, value] of Object.entries(template.attributes)) {
       if (typeof value === 'number') {
         const part = parts[value];
-        if (key.startsWith('on')) {
-          if (typeof part !== 'function') {
-            // TODO write error message
-            throw new Error('');
+        if (typeof part === 'function') {
+          if (!key.startsWith('on')) { 
+            throw new TypeError(`Invalid event listener ${key}.`);
           }
           // TODO we need a way to clean these up automatically
-          node.addEventListener(key.slice(2), part as EventListener);
+          const event_name = key.slice(2);
+          node.addEventListener(event_name, part);
+          // const disposable = { dispose: () => node.removeEventListener(event_name, part) };
+        } else if (is_observable(part)) {
+          // TODO we need a way to clean these up automatically
+          bind_store_to_attribute(part, node, key);
         } else {
-          node.setAttribute(key, typeof value === 'string' ? value : JSON.stringify(value));
+          node.setAttribute(key, makeString(part));
         }
       } else {
         node.setAttribute(key, value);
@@ -64,84 +70,91 @@ export function create_placeholder_node(): ChildNode {
   return new Comment('content placeholder');
 }
 
-export function render_node(value: unknown): ChildNode {
-  if (value instanceof Element) {
-    return value;
+export function render_node(value: ChildNode | DocumentFragment | Primitive | EventListener): ChildNode | string | ChildNode[] {
+  if (typeof value === 'function') {
+    throw new TypeError('Received a function where a Node or Primitive was expected.');
   }
-  const text = typeof value === 'string' ? value : JSON.stringify(value);
-  return document.createTextNode(text);
+  if (value instanceof DocumentFragment) {
+    return Array.from(value.childNodes);
+  }
+  return value instanceof Node ? value : makeString(value);
 }
 
-export function bind_store_to_node(store: Observable<unknown>, stub: ChildNode) {
+export function bind_store_to_node(store: Observable<Part>, stub: ChildNode): Disposable {
   let current: ChildNode[] = [stub];
-  store.watch(value => {
-    let values: unknown[] = Array.isArray(value) ? value : [value];
+  return store.watch(value => {
+    const values = Array.isArray(value) ? value : [value];
     // removed any Nullish values from the list
-    values = values.filter(isDefined);
+    const filtered_values = values.filter(isDefined);
 
     // Target _must always_ contain at least 1 element so that we can reliably
     // reference the position
-    if (values.length === 0) {
-      values.push(stub);
+    if (filtered_values.length === 0) {
+      filtered_values.push(stub);
     }
-    current = element_swap(current, values.map(render_node));
+    current = element_swap(current, filtered_values.map(v => render_node(v)).flat());
+  });
+}
+
+export function bind_store_to_attribute(store: Observable<Part>, node: Element, attribute_name: string): Disposable {
+  return store.watch(value => {
+    if (isNullish(value)) {
+      node.removeAttribute(attribute_name);
+    } else {
+      if (!isPrimitive(value)) {
+        throw new TypeError('Invalid attribute value.');
+      }
+      node.setAttribute(attribute_name, makeString(value));
+    }
   });
 }
 
 export function element_swap (from: ChildNode[], to: (ChildNode | string)[]): ChildNode[] {
   const output: ChildNode[] = [];
+
+  let previous: ChildNode | null = null;
+
+  for (const pair of zip(from, to)) {
+    const old_node = pair[0];
+    let new_node = pair[1];
+
+    if (typeof new_node === 'string') {
+      new_node = old_node.textContent !== new_node ? new Text(new_node) : old_node;
+    }
+
+    // don't bother swapping if it's the same node
+    if (old_node !== new_node) {
+      if (previous) {
+        previous.after(new_node);
+      } else {
+        old_node.replaceWith(new_node);
+      }
+    }
+
+    previous = new_node;
+    output.push(new_node);
+  }
+
   if (from.length >= to.length) {
     // reducing in size; swap `0...to`, then remove `to...from`
-    const moved = new Set();
-    for(const pair of zip(from, to)) {
-      const old_node = pair[0];
-      let new_node = pair[1];
-
-      if (typeof new_node === 'string') {
-        new_node = old_node.textContent !== new_node ? new Text(new_node) : old_node;
-      }
-
-      // don't bother swapping if it's the same node
-      if (old_node !== new_node) {
-        old_node.replaceWith(new_node);
-        moved.add(new_node);
-      }
-
-      output.push(new_node);
-    }
+    
     // any nodes we insert may exist in `a`, hence they are removed as part of
     // the replace operation. so we must not remove them afterwards
-    for(const a of from.slice(to.length)) {
-      if (!moved.has(a)) {
+    for (const a of from.slice(to.length)) {
+      if (!output.includes(a)) {
         a.remove();
       }
     }
   } else {
-    // increasing in size; swap all but the last, then use the last node for 
-    // a one to many replace
-    for(const pair of zip(from.slice(0, -1), to)) {
-      const old_node = pair[0];
-      let new_node = pair[1];
-			
-      if (typeof new_node === 'string') {
-        new_node = old_node.textContent !== new_node ? new Text(new_node) : old_node;
-      }
-
-      if (old_node !== new_node) {
-        old_node.replaceWith(new_node);
-      }
-
-      output.push(new_node);
-    }
-    const current_index = from.length - 1;
-    const last = from[current_index];
+    // increasing in size; append all the new ones after the last
+    const last = output.at(-1);
 
     // TODO write error
     invariant(last !== undefined, '');
 
-    const additional = to.slice(current_index).map(value => typeof value === 'string' ? new Text(value) : value);
+    const additional = to.slice(output.length).map(value => typeof value === 'string' ? new Text(value) : value);
     output.push(...additional);
-    last.replaceWith(...additional);
+    last.after(...additional);
   }
 
   return output;
