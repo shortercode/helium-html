@@ -1,6 +1,6 @@
 import { Index, isString } from 'ts-runtime-typecheck';
 import { Emitter, is_observable, SimpleObservable, Store } from './Observable';
-import { distinct } from './operators';
+import type { Operator } from './Observable.type';
 
 describe('SimpleObservable', () => {
   test('listeners passed to watch are called', () => {
@@ -137,7 +137,7 @@ describe('AbstractObservable', () => {
     const values: Index[] = [];
     
     emitter.watch(v => values.push(v));
-    emitter.filter(isString).watch(v => values.push(v));
+    emitter.filter(isString).watch((v: string) => values.push(v));
 
     expect(values).toStrictEqual([]);
 
@@ -180,10 +180,22 @@ describe('AbstractObservable', () => {
   });
 
   test('pipe accepts an operator', () => {
+    const distinct: Operator<number> = source => new SimpleObservable(
+      listener => {
+        let previous: number | null = null;
+        return source.watch(value => {
+          if (previous !== value) {
+            previous = value;
+            listener(value);	
+          }
+        });
+      }
+    );
+
     const emitter = new Emitter<number>();
     const values: number[] = []; 
 
-    emitter.pipe(distinct()).watch(v => values.push(v));
+    emitter.pipe(distinct).watch(v => values.push(v));
 
     expect(values).toStrictEqual([]);
 

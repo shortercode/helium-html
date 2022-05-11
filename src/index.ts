@@ -4,4 +4,4 @@ export { children } from './children';
 export { Store, Emitter, AbstractObservable } from './Observable';
 export type { Observable, Disposable, Listener, Subscriber, Operator } from './Observable.type';
 
-export { map, filter, distinct, view } from './operators';
+export { distinct } from './operators';

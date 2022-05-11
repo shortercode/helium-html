@@ -255,5 +255,14 @@ export function close_parser (ctx: Parser): Template {
   const last = ctx.stack.pop();
   ctx.stack.length = 0;
   invariant(last !== undefined, 'Stack is empty, no root node');
+
+  // 
+  if (last.tag === FRAGMENT_TAG && last.children) {
+    const { children } = last;
+    const only_child = children.length === 1 && children[0];
+    if (typeof only_child === 'object') {
+      return only_child;
+    }
+  }
   return last;
 }

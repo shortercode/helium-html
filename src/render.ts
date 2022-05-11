@@ -6,8 +6,9 @@ import { is_observable } from './Observable';
 import type { Template } from './Template.type';
 import type { Disposable, Observable } from './Observable.type';
 import type { ObservableOrPart, Part } from './Child.type';
+import type { Namespace } from './Namespace.type';
 
-export function render_template (template: Template, parts: ObservableOrPart[], namespace: 'http://www.w3.org/2000/svg' | 'http://www.w3.org/1999/xhtml' = 'http://www.w3.org/1999/xhtml'): Element | DocumentFragment {	
+export function render_template (template: Template, parts: ObservableOrPart[], namespace: Namespace): Element | DocumentFragment {	
   const node = template.tag === FRAGMENT_TAG ? document.createDocumentFragment() : document.createElementNS(namespace, template.tag);
 
   if (template.children) {

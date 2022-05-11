@@ -1,4 +1,6 @@
 import type { Part } from './Child.type';
+import { HTML_NAMESPACE, SVG_NAMESPACE } from './Namespace.constants';
+import type { Namespace } from './Namespace.type';
 import type { Observable } from './Observable.type';
 import { close_parser, create_parser, parse_chunk } from './parser';
 import { render_template } from './render';
@@ -7,14 +9,14 @@ import type { Template } from './Template.type';
 const template_cache = new Map<TemplateStringsArray, Template>();
 
 export function svg (literal: TemplateStringsArray, ...parts: Array<Part | Observable<Part>>): DocumentFragment | Element {
-  return helium(literal, parts, 'http://www.w3.org/2000/svg');
+  return helium(literal, parts, SVG_NAMESPACE);
 }
 
 export function html (literal: TemplateStringsArray, ...parts: Array<Part | Observable<Part>>): DocumentFragment | Element {
-  return helium(literal, parts, 'http://www.w3.org/1999/xhtml');
+  return helium(literal, parts, HTML_NAMESPACE);
 }
 
-export function helium (literal: TemplateStringsArray, parts: Array<Part | Observable<Part>>, namespace: 'http://www.w3.org/2000/svg' | 'http://www.w3.org/1999/xhtml'): DocumentFragment | Element {
+export function helium (literal: TemplateStringsArray, parts: Array<Part | Observable<Part>>, namespace: Namespace): DocumentFragment | Element {
   let template = template_cache.get(literal);
 
   // first part can memoised based on the literal
@@ -30,10 +32,4 @@ export function helium (literal: TemplateStringsArray, parts: Array<Part | Obser
 
   // this bit needs to be done fresh each time
   return render_template(template, parts, namespace);
-
-  // TODO the above always returns a fragment, because the root template is
-  // always a fragment. In the case that the fragment only contains 1 element
-  // it makes more sense to return that instead of the fragment
-  // This could be done by either trimming the template or inspecting the
-  // rendered output
 }
