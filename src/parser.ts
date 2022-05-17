@@ -136,6 +136,7 @@ export function parse_node (ctx: Parser, buffer: string[]): void {
 }
 
 export function parse_tag (ctx: Parser, buffer: string[]): void {
+  // TODO add support for HTML comments here
   if (buffer[0] === '/') {
     buffer.shift();
     parse_closing_tag(ctx, buffer);

@@ -56,7 +56,7 @@ setTimeout(() => name.update('Paul'), 5000);
 
 ## No V-DOM
 
-`Observable`s are bound to a specific piece of your template. If you have a large template with a single piece of dynamic text, only the relevant piece is updated. This differs from the likes of react which do a 'virtual' render of the entire template, compare with the current state and modify only the parts which change. Skipping this has obvious performance advantages, but care needs to be taken to avoid large re-renders.
+`Observable`s are bound to a specific piece of your template. If you have a large template with a single piece of dynamic text, only the relevant piece is updated. This differs from the likes of react which do a 'virtual' render of the entire template, compare with the current state and modify only the parts which change. Skipping this has obvious performance advantages, but naive use can lead to large re-renders.
 
 The following is a simple example showing 2 ways to reflect state changes. Both take the same parameters, can be used in similar ways and produce the same HTML. In function `a` the `Observable` state is passed into the template expression. In function `b` state changes are observed and the value is passed into the template expression.
 
@@ -166,7 +166,7 @@ Templates are parsed lazily and stored for reuse. So you only pay the parsing co
 
 ## Typo correction
 
-Missing closing tags are corrected for automatically. Unmatched closing tags are ignored
+Missing closing tags are corrected for automatically. Unmatched closing tags are ignored.
 
 ## Observables
 
@@ -186,7 +186,3 @@ helium `Observable`s do not support error or completion events. Any faults are t
 ## Project status
 
 This project is currently in pre-release state. Many of the ideas have been fleshed out and implemented, with minimal testing. Some use cases are not fully covered, and performance has not been optimized. But it stands as a proof of concept. Some things might change and break before reaching 1.0.0, after which normal semver rules will be observed for breaking changes.
-
-## TODO
-
-Nodes can bind to event listeners and Observables, then be removed from the DOM. This can leave lingering connections causing memory leaks. Ideally subscriptions should be made when a template is added to the DOM, and disposed when it's removed from the scope.

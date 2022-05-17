@@ -4,67 +4,86 @@ import { FRAGMENT_TAG } from './Template.constants';
 import { is_observable } from './Observable';
 
 import type { Template } from './Template.type';
-import type { Disposable, Observable } from './Observable.type';
-import type { ObservableOrPart, Part } from './Child.type';
+import type { Disposable } from './Observable.type';
+import type { DynamicValue, Value } from './Child.type';
 import type { Namespace } from './Namespace.type';
+import { create_ref, Ref } from './Ref';
 
-export function render_template (template: Template, parts: ObservableOrPart[], namespace: Namespace): Element | DocumentFragment {	
+const AUTOMATED_DISPOSER = new FinalizationRegistry<Disposable>(disposable => disposable.dispose());
+
+export function add_ref_to_disposer(ref: Ref<object>, disposable: Disposable) {
+  const value = ref.deref();
+  if (value) {
+    AUTOMATED_DISPOSER.register(value, disposable);
+  }
+}
+
+export function render_template (template: Template, parts: Value[], namespace: Namespace): Element | DocumentFragment {	
   const node = template.tag === FRAGMENT_TAG ? document.createDocumentFragment() : document.createElementNS(namespace, template.tag);
 
   if (template.children) {
-    for (const child_template of template.children) {
-      if (typeof child_template === 'string') {
-        node.appendChild(document.createTextNode(child_template));
-      } else if (typeof child_template === 'number') {
-        const part = parts[child_template];
-        const subparts = Array.isArray(part) ? part : [part];
-        for (const sub of subparts) {
-          if (sub instanceof Node) {
-            node.appendChild(sub);
-          } else if (is_observable(sub)) {
-            const stub = create_placeholder_node();
-            node.appendChild(stub);
-            // TODO we need a way to clean these up automatically
-            bind_store_to_node(sub, stub);
-          } else if (isDefined(sub)){
-            // TODO insert error if subpart is a function & add test
-            node.appendChild(document.createTextNode(makeString(sub)));
-          }
-        }
-      } else {
-        node.appendChild(render_template(child_template, parts, namespace));
-      }
-    }
+    render_children(node, template.children, parts, namespace);
   }
 
   if (template.attributes) {
     if (node instanceof DocumentFragment) {
       throw new Error('Unable to add attributes to a DocumentFragment.');
     }
-    for (const [key, value] of Object.entries(template.attributes)) {
-      if (typeof value === 'number') {
-        const part = parts[value];
-        if (typeof part === 'function') {
-          if (!key.startsWith('on')) { 
-            throw new TypeError(`Invalid event listener ${key}.`);
-          }
-          // TODO we need a way to clean these up automatically
-          const event_name = key.slice(2);
-          node.addEventListener(event_name, part);
-          // const disposable = { dispose: () => node.removeEventListener(event_name, part) };
-        } else if (is_observable(part)) {
-          // TODO we need a way to clean these up automatically
-          bind_store_to_attribute(part, node, key);
-        } else {
-          node.setAttribute(key, makeString(part));
-        }
-      } else {
-        node.setAttribute(key, value);
-      }
-    }
+    apply_attributes(node, template.attributes, parts);
   }
 
   return node;
+}
+
+export function render_children(node: Node, children: NonNullable<Template['children']>, parts: Value[], namespace: Namespace): void {
+  const ref = create_ref(node);
+  const is_fragment = node instanceof DocumentFragment;
+  for (const child_template of children) {
+    if (typeof child_template === 'string') {
+      node.appendChild(document.createTextNode(child_template));
+    } else if (typeof child_template === 'number') {
+      const part = parts[child_template];
+      const subparts = Array.isArray(part) ? part : [part];
+      for (const sub of subparts) {
+        if (sub instanceof Node) {
+          node.appendChild(sub);
+        } else if (is_observable(sub)) {
+          const stub = create_placeholder_node();
+          node.appendChild(stub);
+          invariant(is_fragment === false, 'Cannot bind Observable child list to Fragment.');
+          bind_store_to_node(ref, sub, stub);
+        } else if (isDefined(sub)){
+          invariant(typeof sub !== 'function', 'Expected Primitive value and received a function');
+          node.appendChild(document.createTextNode(makeString(sub)));
+        }
+      }
+    } else {
+      node.appendChild(render_template(child_template, parts, namespace));
+    }
+  }
+}
+
+export function apply_attributes(node: Element, attrs: NonNullable<Template['attributes']>, parts: Value[]): void {
+  const ref = create_ref(node);
+
+  for (const [key, value] of Object.entries(attrs)) {
+    if (typeof value === 'number') {
+      const part = parts[value];
+      if (typeof part === 'function') {
+        if (!key.startsWith('on')) { 
+          throw new TypeError(`Invalid event listener ${key}.`);
+        }
+        const event_name = key.slice(2);
+        node.addEventListener(event_name, part);
+      } else if (is_observable(part)) {
+        bind_store_to_attribute(part, ref, key);
+      } else {
+        node.setAttribute(key, makeString(part));
+      }
+    } else {
+      node.setAttribute(key, value);
+    }
+  }
 }
 
 export function create_placeholder_node(): ChildNode {
@@ -81,9 +100,13 @@ export function render_node(value: ChildNode | DocumentFragment | Primitive | Ev
   return value instanceof Node ? value : makeString(value);
 }
 
-export function bind_store_to_node(store: Observable<Part>, stub: ChildNode): Disposable {
+export function bind_store_to_node(ref: Ref<Node>, store: DynamicValue, stub: ChildNode): void {
   let current: ChildNode[] = [stub];
-  return store.watch(value => {
+  const disposable = store.watch(value => {
+    if (!ref.deref()) {
+      disposable.dispose();
+      return;
+    }
     const values = Array.isArray(value) ? value : [value];
     // removed any Nullish values from the list
     const filtered_values = values.filter(isDefined);
@@ -95,10 +118,16 @@ export function bind_store_to_node(store: Observable<Part>, stub: ChildNode): Di
     }
     current = element_swap(current, filtered_values.map(v => render_node(v)).flat());
   });
+  add_ref_to_disposer(ref, disposable);
 }
 
-export function bind_store_to_attribute(store: Observable<Part>, node: Element, attribute_name: string): Disposable {
-  return store.watch(value => {
+export function bind_store_to_attribute(store: DynamicValue, ref: Ref<Element>, attribute_name: string): void {
+  const disposable = store.watch(value => {
+    const node = ref.deref();
+    if (!node) {
+      disposable.dispose();
+      return;
+    }
     if (isNullish(value)) {
       node.removeAttribute(attribute_name);
     } else {
@@ -108,6 +137,7 @@ export function bind_store_to_attribute(store: Observable<Part>, node: Element, 
       node.setAttribute(attribute_name, makeString(value));
     }
   });
+  add_ref_to_disposer(ref, disposable);
 }
 
 export function element_swap (from: ChildNode[], to: (ChildNode | string)[]): ChildNode[] {
@@ -148,10 +178,9 @@ export function element_swap (from: ChildNode[], to: (ChildNode | string)[]): Ch
     }
   } else {
     // increasing in size; append all the new ones after the last
-    const last = output.at(-1);
+    const last = output[output.length - 1];
 
-    // TODO write error
-    invariant(last !== undefined, '');
+    invariant(last !== undefined, 'Expected an adjacent node.');
 
     const additional = to.slice(output.length).map(value => typeof value === 'string' ? new Text(value) : value);
     output.push(...additional);

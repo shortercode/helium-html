@@ -1,22 +1,21 @@
-import type { Part } from './Child.type';
+import type { Value } from './Child.type';
 import { HTML_NAMESPACE, SVG_NAMESPACE } from './Namespace.constants';
 import type { Namespace } from './Namespace.type';
-import type { Observable } from './Observable.type';
 import { close_parser, create_parser, parse_chunk } from './parser';
 import { render_template } from './render';
 import type { Template } from './Template.type';
 
 const template_cache = new Map<TemplateStringsArray, Template>();
 
-export function svg (literal: TemplateStringsArray, ...parts: Array<Part | Observable<Part>>): DocumentFragment | Element {
+export function svg (literal: TemplateStringsArray, ...parts: Value[]): DocumentFragment | Element {
   return helium(literal, parts, SVG_NAMESPACE);
 }
 
-export function html (literal: TemplateStringsArray, ...parts: Array<Part | Observable<Part>>): DocumentFragment | Element {
+export function html (literal: TemplateStringsArray, ...parts: Value[]): DocumentFragment | Element {
   return helium(literal, parts, HTML_NAMESPACE);
 }
 
-export function helium (literal: TemplateStringsArray, parts: Array<Part | Observable<Part>>, namespace: Namespace): DocumentFragment | Element {
+export function helium (literal: TemplateStringsArray, parts: Value[], namespace: Namespace): DocumentFragment | Element {
   let template = template_cache.get(literal);
 
   // first part can memoised based on the literal

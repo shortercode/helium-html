@@ -1,15 +1,21 @@
 import { invariant } from 'ts-runtime-typecheck';
-import type { Part } from './Child.type';
+import type { StaticValue } from './Child.type';
+import { HTML_NAMESPACE } from './Namespace.constants';
 import { Store } from './Observable';
+import { create_ref, set_use_weak_ref } from './Ref';
 import { bind_store_to_attribute, bind_store_to_node, create_placeholder_node, element_swap, render_node, render_template } from './render';
 import { FRAGMENT_TAG } from './Template.constants';
 
+afterEach(() => {
+  set_use_weak_ref(typeof WeakRef === 'function');
+});
+
 describe('render_template', () => {
   test('create fragment', () => {
-    expect(render_template({ tag: FRAGMENT_TAG }, [])).toBeInstanceOf(DocumentFragment);
+    expect(render_template({ tag: FRAGMENT_TAG }, [], HTML_NAMESPACE)).toBeInstanceOf(DocumentFragment);
   });
   test('create element', () => {
-    expect(render_template({ tag: 'div' }, [])).toBeInstanceOf(HTMLDivElement);
+    expect(render_template({ tag: 'div' }, [], HTML_NAMESPACE)).toBeInstanceOf(HTMLDivElement);
   });
   test('create element in SVG namespace', () => {
     const el = render_template({ tag: 'circle' }, [], 'http://www.w3.org/2000/svg');
@@ -18,10 +24,10 @@ describe('render_template', () => {
     expect(el.tagName).toBe('circle');
   });
   test('cannot add attributes to fragment', () => {
-    expect(() => render_template({ tag: FRAGMENT_TAG, attributes: { a: '' }}, [])).toThrow('Unable to add attributes to a DocumentFragment.');
+    expect(() => render_template({ tag: FRAGMENT_TAG, attributes: { a: '' }}, [], HTML_NAMESPACE)).toThrow('Unable to add attributes to a DocumentFragment.');
   });
   test('set plain attributes', () => {
-    const el = render_template({ tag: 'div', attributes: { a: 'hello' } }, []);
+    const el = render_template({ tag: 'div', attributes: { a: 'hello' } }, [], HTML_NAMESPACE);
 
     expect(el).toBeInstanceOf(HTMLDivElement);
     invariant(el instanceof Element, 'Element is Element');
@@ -29,7 +35,7 @@ describe('render_template', () => {
     expect(el.getAttribute('a')).toBe('hello');
   });
   test('set slotted attribute', () => {
-    const el = render_template({ tag: 'div', attributes: { a: 0 } }, [ 'hello' ]);
+    const el = render_template({ tag: 'div', attributes: { a: 0 } }, [ 'hello' ], HTML_NAMESPACE);
 
     expect(el).toBeInstanceOf(HTMLDivElement);
     invariant(el instanceof Element, 'Element is Element');
@@ -39,7 +45,7 @@ describe('render_template', () => {
   // WARN potentially leaky test
   test('set event listener', () => {
     let was_clicked = false;
-    const el = render_template({ tag: 'div', attributes: { onclick: 0 } }, [ () => { was_clicked = true; } ]);
+    const el = render_template({ tag: 'div', attributes: { onclick: 0 } }, [ () => { was_clicked = true; } ], HTML_NAMESPACE);
 
     expect(el).toBeInstanceOf(HTMLDivElement);
     invariant(el instanceof Element, 'Element is Element');
@@ -49,11 +55,11 @@ describe('render_template', () => {
     expect(was_clicked).toBe(true);
   });
   test('can only set function for event listener, not attribute', () => {
-    expect(() => render_template({ tag: 'div', attributes: { click: 0 } }, [ () => null ])).toThrow('');
+    expect(() => render_template({ tag: 'div', attributes: { click: 0 } }, [ () => null ], HTML_NAMESPACE)).toThrow('');
   });
   test('observable attribute', () => {
     const store = new Store('a');
-    const el = render_template({ tag: 'div', attributes: { value: 0 }}, [store]);
+    const el = render_template({ tag: 'div', attributes: { value: 0 }}, [store], HTML_NAMESPACE);
 
     expect(el).toBeInstanceOf(HTMLDivElement);
     invariant(el instanceof Element, 'Element is Element');
@@ -65,7 +71,7 @@ describe('render_template', () => {
     expect(el.getAttribute('value')).toBe('b');
   });
   test('render string child', () => {
-    const el = render_template({ tag: 'div', children: [ 'hello' ]}, []);
+    const el = render_template({ tag: 'div', children: [ 'hello' ]}, [], HTML_NAMESPACE);
 
     expect(el).toBeInstanceOf(HTMLDivElement);
     invariant(el instanceof Element, 'Element is Element');
@@ -74,7 +80,7 @@ describe('render_template', () => {
   });
   test('render template child', () => {
     const child = { tag: 'span', children: [ 'hi' ] };
-    const el = render_template({ tag: 'div', children: [ child ]}, []);
+    const el = render_template({ tag: 'div', children: [ child ]}, [], HTML_NAMESPACE);
 
     expect(el).toBeInstanceOf(HTMLDivElement);
     invariant(el instanceof Element, 'Element is Element');
@@ -83,7 +89,7 @@ describe('render_template', () => {
   });
   test('render slotted node child', () => {
     const child = document.createElement('span');
-    const el = render_template({ tag: 'div', children: [ 0 ]}, [child]);
+    const el = render_template({ tag: 'div', children: [ 0 ]}, [child], HTML_NAMESPACE);
 
     expect(el).toBeInstanceOf(HTMLDivElement);
     invariant(el instanceof Element, 'Element is Element');
@@ -96,7 +102,7 @@ describe('render_template', () => {
       document.createElement('table')
     ];
 
-    const el = render_template({ tag: 'div', children: [ 0 ]}, [child]);
+    const el = render_template({ tag: 'div', children: [ 0 ]}, [child], HTML_NAMESPACE);
 
     expect(el).toBeInstanceOf(HTMLDivElement);
     invariant(el instanceof Element, 'Element is Element');
@@ -105,7 +111,7 @@ describe('render_template', () => {
   });
   test('render slotted observable child', () => {
     const store = new Store('a');
-    const el = render_template({ tag: 'div', children: [0] }, [store]);
+    const el = render_template({ tag: 'div', children: [0] }, [store], HTML_NAMESPACE);
 
     expect(el).toBeInstanceOf(HTMLDivElement);
     invariant(el instanceof Element, 'Element is Element');
@@ -117,7 +123,7 @@ describe('render_template', () => {
     expect(el.outerHTML).toBe('<div>b</div>');
   });
   test('render slotted text child', () => {
-    const el = render_template({ tag: 'div', children: [ 0 ]}, [ 'hello' ]);
+    const el = render_template({ tag: 'div', children: [ 0 ]}, [ 'hello' ], HTML_NAMESPACE);
 
     expect(el).toBeInstanceOf(HTMLDivElement);
     invariant(el instanceof Element, 'Element is Element');
@@ -133,7 +139,7 @@ describe('render_template', () => {
       'hello'
     ];
 
-    const el = render_template({ tag: 'div', children: [ 0 ] }, [child]);
+    const el = render_template({ tag: 'div', children: [ 0 ] }, [child], HTML_NAMESPACE);
 
     expect(el).toBeInstanceOf(HTMLDivElement);
     invariant(el instanceof Element, 'Element is Element');
@@ -180,11 +186,14 @@ describe('render_node', () => {
 });
 
 test('bind_store_to_node', () => {
-  const source = new Store<Part>(undefined);
+  const source = new Store<StaticValue>(undefined);
   const parent = document.createElement('div');
   const stub = new Comment('test test test');
   parent.append(stub);
-  bind_store_to_node(source, stub);
+  // NOTE forces use of strong ref specifically for this test
+  set_use_weak_ref(false);
+  const ref = create_ref(parent);
+  bind_store_to_node(ref, source, stub);
 
   expect(parent.innerHTML).toBe('<!--test test test-->');
 
@@ -219,13 +228,22 @@ test('bind_store_to_node', () => {
   source.update(null);
 
   expect(parent.innerHTML).toBe('<!--test test test-->');
+
+  ref.clear?.();
+
+  source.update('hello');
+
+  // NOTE as the reference has been cleared we expect this not to update
+  expect(parent.innerHTML).toBe('<!--test test test-->');
 });
 
 test('bind_store_to_attribute', () => {
-  const source = new Store<Part>(undefined);
+  const source = new Store<StaticValue>(undefined);
   const node = document.createElement('div');
 
-  bind_store_to_attribute(source, node, 'example');
+  set_use_weak_ref(false);
+  const ref = create_ref(node);
+  bind_store_to_attribute(source, ref, 'example');
 
   expect(node.hasAttribute('example')).toBe(false);
 
@@ -246,6 +264,13 @@ test('bind_store_to_attribute', () => {
   expect(node.getAttribute('example')).toBe('false');
 
   expect(() => source.update(() => null)).toThrow('Invalid attribute value');
+
+  ref.clear?.();
+
+  source.update('hello');
+
+  // NOTE as the reference has been cleared we expect this not to update
+  expect(node.getAttribute('example')).toBe('false');
 });
 
 describe('element_swap', () => {
