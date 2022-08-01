@@ -1,5 +1,5 @@
 import { SimpleObservable } from './Observable';
-import type { Operator } from './Observable.type';
+import type { Operator } from './Observable/Observable.type';
 
 export function distinct<T> (predicate: (a: T, b: T) => boolean = (a, b) => a === b): Operator<T> {
   return source => new SimpleObservable(

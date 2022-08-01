@@ -1,4 +1,4 @@
-import type { Listener, Observable } from './Observable.type';
+import type { Listener, Observable } from './Observable/Observable.type';
 import { match, MatchResult } from 'path-to-regexp';
 import { SimpleObservable } from './Observable';
 import type { Value } from './Child.type';

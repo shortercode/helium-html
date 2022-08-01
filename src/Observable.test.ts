@@ -1,6 +1,6 @@
 import { Index, isString } from 'ts-runtime-typecheck';
 import { Emitter, is_observable, SimpleObservable, Store } from './Observable';
-import type { Operator } from './Observable.type';
+import type { Operator } from './Observable/Observable.type';
 
 describe('SimpleObservable', () => {
   test('listeners passed to watch are called', () => {

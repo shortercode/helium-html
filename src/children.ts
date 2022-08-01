@@ -1,4 +1,4 @@
-import type { Observable } from './Observable.type';
+import type { Observable } from './Observable/Observable.type';
 
 export function children<T, R extends Node> (source: Observable<Iterable<T>>, transform: (value: T) => R, identity: (value: T, index: number) => unknown = (a) => a) {
   let old_cache = new Map<unknown, R>();

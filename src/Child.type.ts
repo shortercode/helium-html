@@ -1,5 +1,5 @@
 import type { Nullish, Primitive } from 'ts-runtime-typecheck';
-import type { Observable } from './Observable.type';
+import type { Observable } from './Observable/Observable.type';
 
 type BasicValue = Nullish | Primitive | EventListener | ChildNode | DocumentFragment;
 

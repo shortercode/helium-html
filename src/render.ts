@@ -4,7 +4,7 @@ import { FRAGMENT_TAG } from './Template.constants';
 import { is_observable } from './Observable';
 
 import type { Template } from './Template.type';
-import type { Disposable } from './Observable.type';
+import type { Disposable } from './Observable/Observable.type';
 import type { DynamicValue, Value } from './Child.type';
 import type { Namespace } from './Namespace.type';
 import { create_ref, Ref } from './Ref';
