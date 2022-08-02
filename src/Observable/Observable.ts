@@ -1,5 +1,5 @@
 import { isDictionary } from 'ts-runtime-typecheck';
-import type { Listener, Observable, Disposable, Operator, Subscriber } from './Observable/Observable.type';
+import type { Listener, Observable, Disposable, Operator, Subscriber } from './Observable.type';
 
 export abstract class AbstractObservable<T> implements Observable<T>, Disposable {
   abstract watch(next: Listener<T>): Disposable;

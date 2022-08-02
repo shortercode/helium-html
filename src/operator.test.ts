@@ -1,4 +1,4 @@
-import { Emitter } from './Observable';
+import { Emitter } from './Observable/Observable';
 import { distinct } from './operators';
 
 describe('distinct', () => {

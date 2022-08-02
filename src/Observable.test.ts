@@ -1,5 +1,5 @@
 import { Index, isString } from 'ts-runtime-typecheck';
-import { Emitter, is_observable, SimpleObservable, Store } from './Observable';
+import { Emitter, is_observable, SimpleObservable, Store } from './Observable/Observable';
 import type { Operator } from './Observable/Observable.type';
 
 describe('SimpleObservable', () => {

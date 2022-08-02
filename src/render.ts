@@ -1,7 +1,7 @@
 import { invariant, isDefined, isNullish, isPrimitive, makeString, Primitive } from 'ts-runtime-typecheck';
 import { zip } from './zip';
 import { FRAGMENT_TAG } from './Template.constants';
-import { is_observable } from './Observable';
+import { is_observable } from './Observable/Observable';
 
 import type { Template } from './Template.type';
 import type { Disposable } from './Observable/Observable.type';

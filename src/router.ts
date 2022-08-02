@@ -1,6 +1,6 @@
 import type { Listener, Observable } from './Observable/Observable.type';
 import { match, MatchResult } from 'path-to-regexp';
-import { SimpleObservable } from './Observable';
+import { SimpleObservable } from './Observable/Observable';
 import type { Value } from './Child.type';
 import { html } from './html';
 import type { DynamicRedirectRoute, RedirectRoute, RenderRoute, Route, StaticRedirectRoute } from './router.type';
