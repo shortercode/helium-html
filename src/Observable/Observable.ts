@@ -1,42 +1,11 @@
 import { isDictionary } from 'ts-runtime-typecheck';
-import type { Listener, Observable, Disposable, Operator, Subscriber } from './Observable.type';
+import { AbstractObservable } from './AbstractObservable';
+import type { Listener, Observable, Disposable, Subscriber } from './Observable.type';
 
-export abstract class AbstractObservable<T> implements Observable<T>, Disposable {
-  abstract watch(next: Listener<T>): Disposable;
-  abstract dispose(): void;
-  pipe<R> (operator: Operator<T, R>): Observable<R> {
-    return operator(this);
-  }
-
-  map<R> (mapper: (value: T) => R): Observable<R> {
-    return new SimpleObservable(
-      listener => this.watch(
-        value => listener(mapper(value))
-      )
-    );
-  }
-  
-  filter<R extends T> (predicate: (value: T) => value is R): Observable<R>;
-  filter(predicate: (value: T) => boolean): Observable<T>;
-  filter(predicate: (value: T) => boolean): Observable<T> {
-    return new SimpleObservable(
-      listener => this.watch(value => {
-        if (predicate(value)) {
-          listener(value);	
-        }
-      })
-    );
-  }
-
-  view<K extends keyof T> (key: K): Observable<T[K]> {
-    return new SimpleObservable(
-      listener => this.watch(
-        value => listener(value[key])
-      )
-    );
-  }
-}
-
+/**
+ * Takes a subscriber and automatically subscribes/disposes based
+ * on the 
+ */
 export class SimpleObservable<T> extends AbstractObservable<T> {
   private subscriptions = new Set<() => void>();
   private closed = false; 
