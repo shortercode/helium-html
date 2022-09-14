@@ -1,7 +1,7 @@
 import { invariant } from 'ts-runtime-typecheck';
 import type { StaticValue } from './Child.type';
 import { HTML_NAMESPACE } from './Namespace.constants';
-import { Store } from './Observable/Observable';
+import { Store } from './Observable/Store';
 import { create_ref, set_use_weak_ref } from './Ref';
 import { bind_store_to_attribute, bind_store_to_node, create_placeholder_node, element_swap, render_node, render_template } from './render';
 import { FRAGMENT_TAG } from './Template.constants';

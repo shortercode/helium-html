@@ -1,7 +1,7 @@
 import { invariant } from 'ts-runtime-typecheck';
 import { children } from './children';
 import { html } from './html';
-import { Store } from './Observable/Observable';
+import { Store } from './Observable/Store';
 
 describe('children', () => {
   test('renders additions to a list', () => {
