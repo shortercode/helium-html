@@ -1,5 +1,5 @@
 import { invariant } from 'ts-runtime-typecheck';
-import { html, svg } from './html';
+import { html, parse_template, svg } from './html';
 
 describe('html', () => {
   test('simple', () => {
@@ -27,6 +27,12 @@ describe('html', () => {
     expect(node.attributes.getNamedItem('title')?.value).toBe('Hello World');
     expect(node.textContent).toBe('Hello World');
   });
+});
+
+test('templates are cached', () => {
+  const fn = () => parse_template`hello world`;
+
+  expect(fn()).toBe(fn());
 });
 
 describe('svg', () => {
