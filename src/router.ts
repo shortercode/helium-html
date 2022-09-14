@@ -5,6 +5,9 @@ import type { Value } from './Child.type';
 import { html } from './html';
 import type { DynamicRedirectRoute, RedirectRoute, RenderRoute, Route, StaticRedirectRoute } from './router.type';
 
+/**
+ * @ignore not ready for public use 
+ */
 export function route<T extends unknown[]>(pattern: string, render: (match: MatchResult, ...data: T) => Node | Promise<Node>, ...data: T): RenderRoute {
   return {
     pattern: match(pattern),
@@ -13,6 +16,9 @@ export function route<T extends unknown[]>(pattern: string, render: (match: Matc
   };
 }
 
+/**
+ * @ignore not ready for public use 
+ */
 export function redirect(pattern: string, url: string | URL): StaticRedirectRoute;
 export function redirect(pattern: string, route: RedirectRoute): DynamicRedirectRoute;
 export function redirect(pattern: string, target: string | URL | RedirectRoute): Route {
@@ -23,6 +29,9 @@ export function redirect(pattern: string, target: string | URL | RedirectRoute):
   return { pattern: match(pattern), label: pattern, route: target };
 }
 
+/**
+ * @ignore not ready for public use 
+ */
 export function router(routes: Route[]): Observable<Node> {
   return new SimpleObservable((listener: Listener<Node>) => {
     function on_pop (event: Pick<PopStateEvent, 'state'>): void {
@@ -52,6 +61,9 @@ export function router(routes: Route[]): Observable<Node> {
   });
 }
 
+/**
+ * @ignore not ready for public use 
+ */
 export async function render_route(route: RenderRoute, match: MatchResult, listener: Listener<Node>): Promise<void> {
   try {
     const node = await route.render(match);
