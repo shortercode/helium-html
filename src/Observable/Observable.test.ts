@@ -1,6 +1,9 @@
 import { Index, isString } from 'ts-runtime-typecheck';
-import { Emitter, is_observable, SimpleObservable, Store } from './Observable/Observable';
-import type { Operator } from './Observable/Observable.type';
+import { Emitter } from './Emitter';
+import { is_observable } from './Observable';
+import { SimpleObservable } from './Observable';
+import type { Operator } from './Observable.type';
+import { Store } from './Store';
 
 describe('SimpleObservable', () => {
   test('listeners passed to watch are called', () => {
@@ -158,27 +161,6 @@ describe('AbstractObservable', () => {
     expect(values).toStrictEqual([1, '2', '2', 3, '4', '4']);
   });
 
-  test('view extracts a member of a record', () => {
-    interface Fruit {
-      name: string;
-      sweetness: number;
-    }
-    const emitter = new Emitter<Fruit>();
-    const values: string[] = [];
-
-    emitter.view('name').watch(v => values.push(v));
-
-    expect(values).toStrictEqual([]);
-
-    emitter.emit({ name: 'Lemon', sweetness: 0 });
-
-    expect(values).toStrictEqual([ 'Lemon' ]);
-
-    emitter.emit({ name: 'Strawberry', sweetness: 5 });
-
-    expect(values).toStrictEqual([ 'Lemon', 'Strawberry' ]);
-  });
-
   test('pipe accepts an operator', () => {
     const distinct: Operator<number> = source => new SimpleObservable(
       listener => {
@@ -215,96 +197,14 @@ describe('AbstractObservable', () => {
 
     expect(values).toStrictEqual([0, 1, 0]);
   });
-});
 
-test('Emitter', () => {
-  const values: string[] = [];
-  const emitter = new Emitter<string>();
-  const new_watcher = (id: string) => (value: string) => values.push(`${id}:${value}`);
+  test('once emits a single value', async () => {
+    const store = new Store(42);
 
-  expect(emitter.inactive).toBe(true);
-
-  const disposer_a = emitter.watch(new_watcher('a'));
-
-  expect(emitter.inactive).toBe(false);
-  expect(values).toStrictEqual([]);
-
-  emitter.emit('1');
-
-  expect(emitter.inactive).toBe(false);
-  expect(values).toStrictEqual(['a:1']);
-
-  emitter.watch(new_watcher('b'));
-
-  expect(emitter.inactive).toBe(false);
-  expect(values).toStrictEqual(['a:1']);
-
-  emitter.emit('2');
-
-  expect(emitter.inactive).toBe(false);
-  expect(values).toStrictEqual(['a:1','a:2', 'b:2']);
-
-  disposer_a.dispose();
-
-  expect(emitter.inactive).toBe(false);
-  expect(values).toStrictEqual(['a:1','a:2', 'b:2']);
-
-  emitter.emit('3');
-
-  expect(emitter.inactive).toBe(false);
-  expect(values).toStrictEqual(['a:1','a:2', 'b:2', 'b:3']);
-
-  emitter.dispose();
-
-  expect(emitter.inactive).toBe(true);
-  expect(values).toStrictEqual(['a:1','a:2', 'b:2', 'b:3']);
-
-  emitter.emit('4');
-
-  expect(emitter.inactive).toBe(true);
-  expect(values).toStrictEqual(['a:1','a:2', 'b:2', 'b:3']);
-});
-
-test('Store', () => {
-  const values: string[] = [];
-  const store = new Store('0');
-  const new_watcher = (id: string) => (value: string) => values.push(`${id}:${value}`);
-
-  const disposer_a = store.watch(new_watcher('a'));
-
-  expect(values).toStrictEqual(['a:0']);
-
-  store.update('1');
-
-  expect(values).toStrictEqual(['a:0', 'a:1']);
-
-  store.watch(new_watcher('b'));
-
-  expect(values).toStrictEqual(['a:0', 'a:1', 'b:1']);
-
-  store.update('2');
-
-  expect(values).toStrictEqual(['a:0', 'a:1', 'b:1', 'a:2', 'b:2']);
-
-  store.modify(v => `${parseInt(v, 10) + 1}`);
-
-  expect(values).toStrictEqual(['a:0', 'a:1', 'b:1', 'a:2', 'b:2', 'a:3', 'b:3']);
-
-  disposer_a.dispose();
-
-  expect(values).toStrictEqual(['a:0', 'a:1', 'b:1', 'a:2', 'b:2', 'a:3', 'b:3']);
-
-  store.update('4');
-
-  expect(values).toStrictEqual(['a:0', 'a:1', 'b:1', 'a:2', 'b:2', 'a:3', 'b:3', 'b:4']);
-
-  store.dispose();
-
-  expect(values).toStrictEqual(['a:0', 'a:1', 'b:1', 'a:2', 'b:2', 'a:3', 'b:3', 'b:4']);
-
-  store.update('5');
-
-  expect(values).toStrictEqual(['a:0', 'a:1', 'b:1', 'a:2', 'b:2', 'a:3', 'b:3', 'b:4']);
+    expect(await store.once()).toBe(42);
+    
+    expect(await store.once()).toBe(42);
+  });
 });
 
 describe('is_observable', () => {

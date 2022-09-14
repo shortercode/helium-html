@@ -1,5 +1,25 @@
-import { SimpleObservable } from './Observable/Observable';
-import type { FoundationObservable, Listener, Operator } from './Observable/Observable.type';
+import { SimpleObservable } from './Observable';
+import type { Disposable, FoundationObservable, Listener, Operator } from './Observable.type';
+
+export function filter<T, R extends T> (predicate: (value: T) => value is R): Operator<T, R>;
+export function filter<T> (predicate: (value: T) => boolean): Operator<T>;
+export function filter<T> (predicate: (value: T) => boolean): Operator<T> {
+  return source => new SimpleObservable(
+    listener => source.watch(value => {
+      if (predicate(value)) {
+        listener(value);	
+      }
+    })
+  );
+}
+
+export function map<T,R>(mapper: (value: T) => R): Operator<T, R> {
+  return source => new SimpleObservable(
+    listener => source.watch(
+      value => listener(mapper(value))
+    )
+  );
+}
 
 export function distinct<T> (predicate: (a: T, b: T) => boolean = (a, b) => a === b): Operator<T> {
   return source => new SimpleObservable(
@@ -42,11 +62,11 @@ export function take<T> (count: number): Operator<T> {
       let counter = 0;
       const disposer = source.watch(value => {
         counter += 1;
-        if (count > counter) {
+        if (counter > count) {
           disposer.dispose();
           return;
         }
-        listener(value)
+        listener(value);
       });
       return disposer;
     }
@@ -95,4 +115,39 @@ export function combine<T1, T2> (additional: FoundationObservable<T2>): Operator
       return { dispose };
     }
   );
+}
+
+export function share<T> (): Operator<T> {
+  return source => {
+    const listeners = new Set<Listener<T>>();
+    let core_disposer: Disposable | null = null;
+
+    const last: { value?: T } = {};
+    function emit (val: T) {
+      last.value = val;
+      for (const listener of listeners) {
+        listener(val);
+      }
+    }
+
+    return new SimpleObservable(
+      listener => {
+        listeners.add(listener);
+        if (core_disposer === null) {
+          core_disposer = source.watch(emit);
+        }
+        else if ('value' in last) {
+          listener(last.value);
+        }
+        const dispose = () => {
+          listeners.delete(listener);
+          if (listeners.size === 0 && core_disposer) {
+            core_disposer.dispose();
+            core_disposer = null;
+          }
+        };
+        return { dispose };
+      }
+    );
+  };
 }
