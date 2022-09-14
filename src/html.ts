@@ -17,7 +17,9 @@ export function html (literal: TemplateStringsArray, ...parts: Value[]): Documen
 }
 
 export function parse_template (literal: TemplateStringsArray): Template {
-  const template = template_cache.get(literal);
+  // WARN if the template literal is transpiled to ES5 the cache will always
+  // miss
+  let template = template_cache.get(literal);
 
   if (template) {
     return template;
@@ -31,5 +33,8 @@ export function parse_template (literal: TemplateStringsArray): Template {
     parse_chunk(ctx, chunk, i < l ? i : - 1);
   }
 	
-  return close_parser(ctx);
+  template = close_parser(ctx);
+  template_cache.set(literal, template);
+
+  return template;
 }
