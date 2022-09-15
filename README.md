@@ -1,37 +1,25 @@
 # helium-html
 
-A simple but powerful library for creating HTML fragments using template literals.
-
-```ts
-import { html } from 'helium-html';
-
-const fragment = html`<h1>hello world</h1>`
-document.body.append(fragment)
-```
-
-## Slotted values
-
-Values can be passed as attributes, nodes or text.
+A simple UI library that is easy to use and plays well with others.
 
 ```ts
 import { html } from 'helium-html';
 
 const name = 'James';
 const avatar = html`<img src=${ `avatar/${name}.png` } alt=${name} />`;
-
+// hello world
 const card = html`<div class="card">
   <h3>hello ${name}</h1>
   ${avatar}
 </div>
 `;
 
-
 document.body.append(card)
 ```
 
-## Dynamic values
+With Helium you can use the `html` tag to write HTML which is transformed into a DOM node. This is no simple interpolation; if you were to add a node via substitution then that node will be appended into the result, not a copy. This makes it relatively simple to compose a document in a concise, coherent and modular way.
 
-Passing an `Observable` as an attribute or node will bind it as the value. This provides a simple way for state to modify content. When written as a function this gives you components with very little behind the scenes magic.
+But what about dynamic state? Well by passing an `Observable` as an attribute or node it will be bound to that node and any changes will be reflected automatically. This provides a simple way for state to modify content. Creating stateful components is as simple as writing a function that accepts an Observable as a parameter.
 
 ```ts
 import { html, Store } from 'helium-html';
@@ -56,7 +44,7 @@ setTimeout(() => name.update('Paul'), 5000);
 
 ## No V-DOM
 
-`Observable`s are bound to a specific piece of your template. If you have a large template with a single piece of dynamic text, only the relevant piece is updated. This differs from the likes of react which do a 'virtual' render of the entire template, compare with the current state and modify only the parts which change. Skipping this has obvious performance advantages, but naive use can lead to large re-renders.
+`Observable`s are bound to a specific piece of your template. If you have a large template with a single piece of dynamic text, only that text will be updated. This differs from the likes of react which do a 'virtual' render of the entire template, compare with the current state and modify only the parts which change. Skipping this has obvious performance advantages, but naive use can lead to large re-renders.
 
 The following is a simple example showing 2 ways to reflect state changes. Both take the same parameters, can be used in similar ways and produce the same HTML. In function `a` the `Observable` state is passed into the template expression. In function `b` state changes are observed and the value is passed into the template expression.
 
@@ -179,10 +167,10 @@ They do not support the Symbol.Observable method, and are not compatible with th
 `Emitter` is an `Observable` that is analogous to a Rxjs Subject. It implements the method `emit` which sends a value to all it's subscribers immediately.
 `Store` is an `Observable` that is analogous to a Rxjs BehaviourSubject. It contains a value which is sent to new subscribers immediately, updates to the value are sent to all subscribers. The initial value is set via the constructor, and changed using the `update` method.
 
-`AbstractObservable` is an abstract class which implements `Observable`. It is used as a base for `Emitter` and `Store`. It is exposed so that developers may implement their own `Observable` classes with custom behavior. It provides a default implementation for `pipe` as well as some other utility methods but requires the implementor to define their own `watch` method, which is where the bulk of the class specific behavior for `Observable`s occur.
+`AbstractObservable` is an abstract class which implements `Observable`. It is used as a base for `Emitter` and `Store`. It is exposed so that developers may implement their own `Observable` classes with custom behavior. It provides a default implementation for `pipe` as well as the common operators `filter` and `map`. However, requires the implementor to define their own `watch` method, which is where the bulk of the class specific behavior for `Observable`s occur.
 
-helium `Observable`s do not support error or completion events. Any faults are thrown back to the trigger. If you wish to pass any error state onto a subscriber I advise utilizing a Result style algebraic type that wraps the success/failure state of an operation. Any subscription to an `Observable` returns a `Disposable` object, by calling the `dispose` method of this object any subscriptions will be cancelled.
+Helium `Observable`s do not support error or completion events. Any faults are thrown back to the trigger. If you wish to pass any error state onto a subscriber I advise utilizing a Result style algebraic type that wraps the success/failure state of an operation. Any subscription to an `Observable` returns a `Disposable` object, by calling the `dispose` method of this object any subscriptions will be cancelled.
 
 ## Project status
 
-This project is currently in pre-release state. Many of the ideas have been fleshed out and implemented, with minimal testing. Some use cases are not fully covered, and performance has not been optimized. But it stands as a proof of concept. Some things might change and break before reaching 1.0.0, after which normal semver rules will be observed for breaking changes.
+This project is currently in pre-release state. Implementation of Observables, common operators and core behavior of the library have been completed and extensive tests written. Some things might still change and break before reaching 1.0.0, after which normal semver rules will be observed for breaking changes.
