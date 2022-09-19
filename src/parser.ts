@@ -1,4 +1,5 @@
 import { invariant } from 'ts-runtime-typecheck';
+import { VOID_ELEMENTS } from './parser.constants';
 import type { Parser } from './Parser.type';
 import { FRAGMENT_TAG } from './Template.constants';
 import type { Template } from './Template.type';
@@ -70,6 +71,10 @@ export function parse_attributes (ctx: Parser, buffer: string[]): void {
     // consume '/'
     buffer.shift();
     // pop the current element from the stack
+    ctx.stack.shift();
+  }
+  // void elements self close without the slash
+  else if (VOID_ELEMENTS.has(top.tag)) {
     ctx.stack.shift();
   }
 

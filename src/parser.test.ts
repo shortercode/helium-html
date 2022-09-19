@@ -606,6 +606,26 @@ describe('parse_opening_tag', () => {
       });
       expect(buffer.length).toBe(0);
     });
+    test('void tag', () => {
+      const ctx = create_parser();
+      const buffer = Array.from('img>');
+      parse_opening_tag(ctx, buffer);
+      expect(ctx.stack[0]).toStrictEqual({
+        tag: FRAGMENT_TAG,
+        children: [{ tag: 'img' }]
+      });
+      expect(buffer.length).toBe(0);
+    });
+    test('void tag with self closing', () => {
+      const ctx = create_parser();
+      const buffer = Array.from('img/>');
+      parse_opening_tag(ctx, buffer);
+      expect(ctx.stack[0]).toStrictEqual({
+        tag: FRAGMENT_TAG,
+        children: [{ tag: 'img' }]
+      });
+      expect(buffer.length).toBe(0);
+    });
     test('with attribute', () => {
       const ctx = create_parser();
       const buffer = Array.from('hello test="value">');
