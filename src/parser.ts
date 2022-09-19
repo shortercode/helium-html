@@ -1,4 +1,5 @@
 import { invariant } from 'ts-runtime-typecheck';
+import { VOID_ELEMENTS } from './parser.constants';
 import type { Parser } from './Parser.type';
 import { FRAGMENT_TAG } from './Template.constants';
 import type { Template } from './Template.type';
@@ -30,6 +31,8 @@ export function parse_chunk (ctx: Parser, src: string, part_index: number) {
 }
 
 export function parse_attributes (ctx: Parser, buffer: string[]): void {
+  const top = ctx.stack[0];
+  invariant(top !== undefined, 'Stack is empty, no root node');
   do {
     consume_whitespace(buffer);
     if (buffer[0] === '/' || buffer[0] === '>') {
@@ -51,9 +54,9 @@ export function parse_attributes (ctx: Parser, buffer: string[]): void {
       // consume "="
       buffer.shift();
       const value = get_attribute_value(ctx, buffer);
-      append_attribute(ctx, name, value);
+      append_attribute(top, name, value);
     } else {
-      append_attribute(ctx, name, '');
+      append_attribute(top, name, '');
     }
   } while(buffer.length > 0);
 
@@ -68,6 +71,10 @@ export function parse_attributes (ctx: Parser, buffer: string[]): void {
     // consume '/'
     buffer.shift();
     // pop the current element from the stack
+    ctx.stack.shift();
+  }
+  // void elements self close without the slash
+  else if (VOID_ELEMENTS.has(top.tag)) {
     ctx.stack.shift();
   }
 
@@ -208,9 +215,7 @@ export function append_child (ctx: Parser, child: string | number | Template) {
   children.push(child);
 }
 
-export function append_attribute(ctx: Parser, name: string, child: string | number) {
-  const top = ctx.stack[0];
-  invariant(top !== undefined, 'Stack is empty, no root node');
+export function append_attribute(top: Template, name: string, child: string | number) {
   let attributes = top.attributes;
   if (!attributes) {
     attributes = {};
