@@ -1,4 +1,4 @@
-import { Dictionary, Index, invariant } from 'ts-runtime-typecheck';
+import { assertDefined, Dictionary, Index, invariant } from 'ts-runtime-typecheck';
 import { append_attribute, append_child, close_parser, consume_whitespace, create_parser, get_attribute_value, parse_attributes, parse_chunk, parse_closing_tag, parse_node, parse_nodes, parse_opening_tag, parse_tag, parse_text_node, read_label } from './parser';
 import type { Parser } from './Parser.type';
 import { FRAGMENT_TAG } from './Template.constants';
@@ -731,33 +731,32 @@ describe('append_child', () => {
 });
 
 describe('append_attribute', () => {
-  test('throws if empty stack', () => {
-    const ctx = create_parser();
-    ctx.stack.length = 0;
-    expect(() => append_attribute(ctx, 'test', 'value')).toThrow('Stack is empty, no root node');
-  });
   test('creates attributes if it does not exist', () => {
     const ctx = create_parser();
-    expect(ctx.stack[0]?.attributes).toBeUndefined();
-    append_attribute(ctx, 'test', 'value');
-    expect(ctx.stack[0]?.attributes).toBeDefined();
+    const top = ctx.stack[0];
+    assertDefined(top);
+    expect(top.attributes).toBeUndefined();
+    append_attribute(top, 'test', 'value');
+    expect(top.attributes).toBeDefined();
   });
   test('uses existing attributes if already exists', () => {
     const ctx = create_parser();
     const top = ctx.stack[0];
-    invariant(typeof top !== 'undefined', '');
+    assertDefined(top);
 
     expect(top.attributes).toBeUndefined();
     const attr: Dictionary<Index> = {};
     top.attributes = attr;
 
-    append_attribute(ctx, 'test', 'value');
+    append_attribute(top, 'test', 'value');
     expect(attr['test']).toBe('value');
   });
   test('adds new attribute', () => {
     const ctx = create_parser();
-    append_attribute(ctx, 'a', 1);
-    append_attribute(ctx, 'b', 2);
+    const top = ctx.stack[0];
+    assertDefined(top);
+    append_attribute(top, 'a', 1);
+    append_attribute(top, 'b', 2);
     expect(ctx.stack[0]?.attributes).toStrictEqual({
       a: 1,
       b: 2
@@ -765,11 +764,13 @@ describe('append_attribute', () => {
   });
   test('overwrites an existing attribute with same name', () => {
     const ctx = create_parser();
-    append_attribute(ctx, 'a', 1);
+    const top = ctx.stack[0];
+    assertDefined(top);
+    append_attribute(top, 'a', 1);
     expect(ctx.stack[0]?.attributes).toStrictEqual({
       a: 1,
     });
-    append_attribute(ctx, 'a', 2);
+    append_attribute(top, 'a', 2);
     expect(ctx.stack[0]?.attributes).toStrictEqual({
       a: 2,
     });
