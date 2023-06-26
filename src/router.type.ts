@@ -1,9 +1,15 @@
 import type { MatchFunction, MatchResult } from 'path-to-regexp';
+import type { Nodelike } from './Child.type';
+
+export interface HistoryState {
+  url: string;
+  index: number;
+}
 
 export interface RenderRoute {
   pattern: MatchFunction;
   label: string;
-  render(match: MatchResult): Promise<Node>;
+  render(match: MatchResult): Nodelike;
 }
 
 export interface StaticRedirectRoute {
