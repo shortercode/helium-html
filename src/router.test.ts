@@ -1,6 +1,7 @@
 import type { MatchResult } from 'path-to-regexp';
 import { Dictionary, invariant } from 'ts-runtime-typecheck';
-import { is_external_url, link, navigate, normalise_url, redirect, render_route, route } from './router';
+import { link, redirect_route, render_route, route } from './router';
+import { is_external_url, navigate, normalise_url } from './router_core';
 
 const location_assign = jest.fn();
 const location_replace = jest.fn();
@@ -51,10 +52,10 @@ describe('route', () => {
 });
 
 describe('render route', () => {
-  test('render passes combined arguments', async () => {
+  test('render passes combined arguments', () => {
     const render = jest.fn();
     render.mockReturnValue('12');
-    const r = route('/hello/:id', render, 'test_a', 'test_b');
+    const r = route('/hello/:id', render);
     const match = r.pattern('/hello/charles');
     expect(match).toMatchObject({
       index: 0,
@@ -63,22 +64,22 @@ describe('render route', () => {
       },
       path: '/hello/charles'
     });
-    expect(await r.render(match as MatchResult)).toBe('12');
-    expect(render).toBeCalledWith(match, 'test_a', 'test_b');
+    expect(r.render(match as MatchResult)).toBe('12');
+    expect(render).toBeCalledWith(match);
   });
 });
 
 describe('static redirect route', () => {
   test('static relative path', () => {
-    const r = redirect('/hello', '/goodbye');
+    const r = redirect_route('/hello', '/goodbye');
     expect(r.url.href).toBe('http://localhost/goodbye');
   });
   test('static absolute path', () => {
-    const r = redirect('/hello', 'https://another.com/goodbye');
+    const r = redirect_route('/hello', 'https://another.com/goodbye');
     expect(r.url.href).toBe('https://another.com/goodbye');
   });
   test('static absolute path ( using URL object )', () => {
-    const r = redirect('/hello', new URL('https://another.com/goodbye'));
+    const r = redirect_route('/hello', new URL('https://another.com/goodbye'));
     expect(r.url.href).toBe('https://another.com/goodbye');
   });
 });
@@ -87,7 +88,7 @@ describe('dynamic redirect route', () => {
   test('calls route function', () => {
     const get_route = jest.fn();
     get_route.mockImplementation(({ params }: MatchResult<Dictionary<string>>) => `/goodbye/${params['id'] ?? ''}`);
-    const r = redirect('/hello/:id', get_route);
+    const r = redirect_route('/hello/:id', get_route);
     const match = r.pattern('/hello/charles');
     expect(match).toMatchObject({
       index: 0,
@@ -116,7 +117,7 @@ describe('render_route', () => {
     console.error = console_error_real;
   });
   test('calls render and passes result to listener', async () => {
-    const r = route('/hello', jest.fn((): Node => new Text('hi')));
+    const r = route('/hello', jest.fn(() => new Text('hi')));
     const listener = jest.fn();
     await render_route(r, r.pattern('/hello') as MatchResult, listener);
     const call = listener.mock.calls[0] as unknown[];
@@ -180,11 +181,11 @@ describe('navigate', () => {
   });
   test('local path uses pushState', () => {
     navigate('/hello');
-    expect(history_pushstate).toBeCalledWith('/hello', '', '/hello');
+    expect(history_pushstate).toBeCalledWith({ index: 1, url: '/hello'}, '', '/hello');
   });
   test('absolute local path uses pushState', () => {
     navigate('http://localhost/hello');
-    expect(history_pushstate).toBeCalledWith('/hello', '', '/hello');
+    expect(history_pushstate).toBeCalledWith({ index: 1, url: '/hello'}, '', '/hello');
   });
   test('external path uses location.assign', () => {
     navigate('http://example.com/hello');
@@ -221,6 +222,6 @@ describe('link', () => {
   test('link handler calls navigate with url', () => {
     const el = link('/hello', 'hello');
     (el as HTMLAnchorElement).click();
-    expect(history_pushstate).toBeCalledWith('/hello', '', '/hello');
+    expect(history_pushstate).toBeCalledWith({ index: 1, url: '/hello'}, '', '/hello');
   });
 });

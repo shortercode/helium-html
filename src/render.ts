@@ -5,7 +5,7 @@ import { is_observable } from './Observable/Observable';
 
 import type { Template } from './Template.type';
 import type { Disposable } from './Observable/Observable.type';
-import type { DynamicValue, Value } from './Child.type';
+import type { DynamicValue, Nodelike, Value } from './Child.type';
 import type { Namespace } from './Namespace.type';
 import { create_ref, Ref } from './Ref';
 
@@ -90,7 +90,7 @@ export function create_placeholder_node(): ChildNode {
   return new Comment('content placeholder');
 }
 
-export function render_node(value: ChildNode | DocumentFragment | Primitive | EventListener): ChildNode | string | ChildNode[] {
+export function render_node(value: Nodelike | Primitive | EventListener): ChildNode | string | ChildNode[] {
   if (typeof value === 'function') {
     throw new TypeError('Received a function where a Node or Primitive was expected.');
   }
